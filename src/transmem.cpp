@@ -5,6 +5,3 @@
 #include "transmem.h"
 
 
-TransMem::TransMem()
-{
-}
