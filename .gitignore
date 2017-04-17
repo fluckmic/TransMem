@@ -3,6 +3,10 @@
 doc/html/**
 doc/latex/**
 
+# UserProjectFile #
+###################
+transmem.pro.user
+
 # Compiled source #
 ###################
 *.com
