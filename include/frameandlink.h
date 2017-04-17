@@ -15,13 +15,19 @@ class Frame;
  */
 class Link
 {
+
 public:
+
     /**
      * @brief Link
      * @param parent
      * @param child
      */
-    Link(Frame *const parent, Frame *const child, const Duration &dur);
+    Link(Frame *const _parent, Frame *const _child, const DurationSec &_storageTime)
+    : parent{_parent}
+    , child(_child)
+    , buf(_storageTime)
+    {}
 
     /**
      * @brief oldestTransformation
@@ -68,9 +74,10 @@ public:
     /**
      * @brief weight
      */
-    double weight;
+    double weight = 1.;
 
 protected:
+
     /**
      * @brief buf
      */

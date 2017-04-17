@@ -56,7 +56,9 @@ public:
      * @param dur buffer duration in seconds
      *
      */
-    TransMem(Duration dur);
+    TransMem(DurationSec _storageTime)
+    : storageTime(_storageTime)
+    {}
 
     /**
      * @fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans)
@@ -192,7 +194,7 @@ protected:
     /**
      * @brief dur
      */
-    Duration dur;
+    DurationSec storageTime{10};
 
     /**
      * @brief lock

@@ -7,7 +7,8 @@
 
 using FrameID = std::string;
 using Timestamp = std::chrono::time_point<std::chrono::high_resolution_clock>;
-using Duration = std::chrono::seconds;
+using DurationSec = std::chrono::seconds;
+using DurationNanoSec = std::chrono::nanoseconds;
 
 /**
  * @brief The TransEntry struct
@@ -17,5 +18,7 @@ struct TransEntry {
     QQuaternion translation;
     Timestamp time;
 };
+
+
 
 #endif // TYPEDEFS_H
