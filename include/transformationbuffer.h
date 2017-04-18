@@ -45,15 +45,12 @@ public:
      */
     void addEntry(TransEntry &te);
 
-protected:
-
     /**
-     * @brief closestEntries
-     * @param t
-     * @param el
-     * @param er
+     * @brief printCurrentBuffer
      */
-    void closestEntries(const Timestamp &t, TransEntry &el, TransEntry &er);
+    void printCurrentBuffer();
+
+protected:
 
     /**
      * @brief interpolate
@@ -62,7 +59,12 @@ protected:
      * @param er
      * @param res
      */
-    void interpolate(const Timestamp &t, const TransEntry &el, const TransEntry &er, TransEntry res);
+    void interpolate(const TransEntry &el, const TransEntry &er, TransEntry &res);
+
+    /**
+     * @brief pruneStorage
+     */
+    void pruneStorage();
 
     /**
      * @brief buffer

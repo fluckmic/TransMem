@@ -5,13 +5,13 @@
 #ifndef TRANSMEM_H
 #define TRANSMEM_H
 
-#include "frameandlink.h"
-#include "typedefs.h"
-
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QQuaternion>
 #include <unordered_map>
 #include <mutex>
+
+#include "typedefs.h"
+#include "frameandlink.h"
 
 /**
  * @brief The path struct
