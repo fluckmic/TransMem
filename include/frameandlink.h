@@ -3,6 +3,7 @@
 
 #include "typedefs.h"
 #include "transformationbuffer.h"
+#include "stampedtransformation.h"
 
 #include <string>
 #include <vector>
@@ -10,125 +11,69 @@
 
 class Frame;
 
-/**
- * @brief The Link class
- */
+/***************************
+ * LINK                    *
+ ***************************/
+
 class Link
 {
 
 public:
 
-    /**
-     * @brief Link
-     * @param parent
-     * @param child
-     */
     Link(Frame *const _parent, Frame *const _child, const DurationSec &_storageTime)
     : parent{_parent}
     , child(_child)
     , buf(_storageTime)
     {}
 
-    /**
-     * @brief oldestTransformation
-     * @param srcFrame
-     * @param destFrame
-     * @param e
-     */
-    void oldestTransformation(const FrameID &srcFrame, const FrameID &destFrame, TransEntry &e);
+    void oldestTransformation(const FrameID &srcFrame, StampedTransformation &e);
 
-    /**
-     * @brief newestTransformation
-     * @param srcFrame
-     * @param destFrame
-     * @param e
-     */
-    void newestTransformation(const FrameID &srcFrame, const FrameID &destFrame, TransEntry &e);
+    void newestTransformation(const FrameID &srcFrame, StampedTransformation &e);
 
-    /**
-     * @brief addTransformation
-     * @param srcFrame
-     * @param destFrame
-     * @param e
-     */
-    void addTransformation(const FrameID &srcFrame, const FrameID &destFrame, TransEntry &e);
+    void addTransformation(const FrameID &srcFrame, StampedTransformation &e);
 
-    /**
-     * @brief transformationAtTimeT
-     * @param srcFrame
-     * @param destFrame
-     * @param e
-     */
-    void transformationAtTimeT(const FrameID &srcFrame, const FrameID &destFrame, TransEntry &e);
+    void transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &e);
 
-    /**
-     * @brief parent
-     */
     Frame *const parent;
 
-    /**
-     * @brief child
-     */
     Frame *const child;
 
-    /**
-     * @brief weight
-     */
     double weight = 1.;
 
 protected:
 
-    /**
-     * @brief buf
-     */
+    enum accessType { TIME, OLDEST, NEWEST };
+
+    void getTransformation(const FrameID &srcFrame, StampedTransformation &e, accessType at);
+
+    void invertTransformation(StampedTransformation &e);
+
     TransformationBuffer buf;
 };
 
-/**
- * @brief The Frame class
- */
+
+/***************************
+ * FRAME                   *
+ ***************************/
+
 class Frame
 {
 public:
-    /**
-     * @brief Frame
-     * @param frameID
-     */
-    Frame(const FrameID &frameID);
 
-    /**
-     * @brief isConnectedTo
-     * @param f
-     * @return
-     */
-    bool isConnectedTo(const FrameID &f) const;
+    Frame(const FrameID &_frameID)
+    : frameID(_frameID)
+    {}
 
-    /**
-     * @brief addParent
-     * @param p
-     */
-    void addParent(Link &p);
+    void addLink(Link* const l);
 
-    /**
-     * @brief addChild
-     * @param c
-     */
-    void addChild(Link &c);
+    void connectionTo(const FrameID &f, Link* l);
 
-    /**
-     * @brief frameID
-     */
     const FrameID frameID;
 
-    /**
-     * @brief parents
-     */
-    std::vector<Link> parents;
+    std::vector<Link*> parents;
 
-    /**
-     * @brief children
-     */
-    std::vector<Link> children;
+    std::vector<Link*> children;
+
 };
 
 #endif // FRAMEANDLINK_H

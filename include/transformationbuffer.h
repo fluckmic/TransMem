@@ -2,7 +2,7 @@
 #define TRANSFORMATIONBUFFER_H
 
 #include "typedefs.h"
-
+#include "stampedtransformation.h"
 #include <list>
 
 /**
@@ -25,25 +25,25 @@ public:
      * @brief oldestEntry
      * @param te
      */
-    void oldestEntry(TransEntry &te);
+    void oldestEntry(StampedTransformation &te);
 
     /**
      * @brief newestEntry
      * @param te
      */
-    void newestEntry(TransEntry &te);
+    void newestEntry(StampedTransformation &te);
 
     /**
      * @brief entryAt
      * @param te
      */
-    void entryAt(TransEntry &te);
+    void entryAt(StampedTransformation &te);
 
     /**
      * @brief addEntry
      * @param te
      */
-    void addEntry(TransEntry &te);
+    void addEntry(StampedTransformation &te);
 
     /**
      * @brief printCurrentBuffer
@@ -59,7 +59,7 @@ protected:
      * @param er
      * @param res
      */
-    void interpolate(const TransEntry &el, const TransEntry &er, TransEntry &res);
+    void interpolate(const StampedTransformation &el, const StampedTransformation &er, StampedTransformation &res);
 
     /**
      * @brief pruneStorage
@@ -69,7 +69,7 @@ protected:
     /**
      * @brief buffer
      */
-    std::list<TransEntry> buffer;
+    std::list<StampedTransformation> buffer;
 
     /**
      * @brief storageTime
@@ -85,6 +85,7 @@ protected:
      * @brief maxNumberOfEntries
      */
     const unsigned int maxNumberOfEntries = 1000000;
+    // TODO: avoid usage of more than maxNumberOfEntries in the buffer
 
 };
 

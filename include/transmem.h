@@ -12,31 +12,24 @@
 
 #include "typedefs.h"
 #include "frameandlink.h"
+#include "stampedtransformation.h"
 
-/**
- * @brief The path struct
- */
+
+/****************************
+ * PATH                     *
+ ****************************/
+
 struct Path {
-    /**
-     * @brief src
-     */
     FrameID src;
-
-    /**
-     * @brief dst
-     */
     FrameID dst;
-
-    /**
-     * @brief links
-     */
     std::vector<Link*> links;
 };
 
 
-/**
- * @brief The TransMem class
- */
+/****************************
+ * TRANSMEM                 *
+ ****************************/
+
 class TransMem
 {
 
@@ -68,8 +61,7 @@ public:
      *  @param destFrame identifier of the destination frame
      *  @param tstamp timestamp at what time the transformation is valid
      *  @param trans transformation matrix
-     *  @throws InvalidArgumentException
-    */
+     */
     void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans);
 
     /**
@@ -82,8 +74,8 @@ public:
      * @param tstamp timestamp at what time the transformation is valid
      * @param qrot rotation quaternion
      * @param qtrans transformation quaternion
-     * @throws InvalidArgumentException
      */
+
     void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans);
 
     /**
@@ -141,70 +133,31 @@ public:
 
 protected:
 
-    /**
-     * @brief shortestPath
-     * @param srcFrame
-     * @param dstFrame
-     * @param p
-     */
     void shortestPath(const FrameID &srcFrame, const FrameID &dstFrame, Path &p);
 
-    /**
-     * @brief bestPath
-     * @param srcFrame
-     * @param dstFrame
-     * @param tstamp
-     * @param p
-     */
     void bestPath(const FrameID &srcFrame, const FrameID &dstFrame, Timestamp &tstamp, Path &p);
 
-    /**
-     * @brief calculateTransformation
-     * @param p
-     * @param e
-     */
-    void calculateTransformation(const Path &p, TransEntry &e);
+    void calculateTransformation(const Path &p, StampedTransformation &e);
 
-    /**
-     * @brief addLink
-     * @param srcFrame
-     * @param destFrame
-     * @param l
-     */
     void addLink(const FrameID &srcFrame, const FrameID &destFrame, Link &l);
 
-    /**
-     * @brief getLink
-     * @param srcFrame
-     * @param destFrame
-     * @param l
-     */
     void getLink(const FrameID &srcFrame, const FrameID &destFrame, Link &l);
 
-    /**
-     * @brief frames
-     */
-    std::unordered_map<FrameID, Frame> frames;
+    std::unordered_map<FrameID, Frame*> frameID2Frame;
 
-    /**
-     * @brief links
-     */
+    std::vector<Frame> frames;
     std::vector<Link> links;
 
-    /**
-     * @brief dur
-     */
     DurationSec storageTime{10};
 
-    /**
-     * @brief lock
-     */
     std::recursive_mutex lock;
 };
 
-/**
- * @brief The NoSuchLinkFoundException class
- */
+
+/****************************
+ * NOSUCHLINKFOUNDEXCEPTION *
+ ****************************/
+
 class NoSuchLinkFoundException : public std::runtime_error {
 
 public:

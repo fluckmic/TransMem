@@ -23,11 +23,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += src/transmem.cpp \
     src/transformationbuffer.cpp \
-    src/frameandlink.cpp
+    src/frameandlink.cpp \
+    src/stampedtransformation.cpp
 HEADERS += include/transmem.h \
     include/transformationbuffer.h \
     include/frameandlink.h \
-    include/typedefs.h
+    include/typedefs.h \
+    include/stampedtransformation.h
 
 INCLUDEPATH += include
 
