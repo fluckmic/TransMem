@@ -26,22 +26,20 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
     // if a frame does not exist, create it
     if(IterSrcF == frameID2Frame.end()){
-        Frame sF{srcFrame};
-        frameID2Frame.insert({srcFrame, &sF});
-        frames.push_back(sF);
+        frames.emplace_back(Frame{srcFrame});
+        frameID2Frame.insert({srcFrame, &frames.back()});
 
-        sFPtr = &sF;
+        sFPtr = &frames.back();
     }
     else{
         sFPtr = (*IterSrcF).second;
     }
 
     if(IterDstF == frameID2Frame.end()){
-        Frame dF{destFrame};
-        frameID2Frame.insert({destFrame, &dF});
-        frames.push_back(dF);
+        frames.emplace_back(Frame{destFrame});
+        frameID2Frame.insert({destFrame, &frames.back()});
 
-        dFPtr = &dF;
+        dFPtr = &frames.back();
     }
     else{
         dFPtr = (*IterDstF).second;
@@ -53,15 +51,22 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
     // if the link does not exist, create it
     if(lnkPtr == nullptr){
-        Link lnk = {sFPtr, dFPtr, storageTime};
-        links.push_back(lnk);
+        links.emplace_back(Link{sFPtr, dFPtr, storageTime});
 
-        lnkPtr = &lnk;
+        lnkPtr = &links.back();
         sFPtr->addLink(lnkPtr);
     }
 
     StampedTransformation ne = StampedTransformation{tstamp, qrot, qtrans};
     lnkPtr->addTransformation(srcFrame, ne);
+
+}
+
+void TransMem::dumpAsGraphML(){
+
+   GMLWriter writer;
+
+   writer.write(this);
 
 }
 

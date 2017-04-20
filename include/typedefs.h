@@ -2,6 +2,7 @@
 #define TYPEDEFS_H
 
 #include <string>
+#include <sstream>
 #include <chrono>
 #include <QtGui/QQuaternion>
 

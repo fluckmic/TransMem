@@ -11,6 +11,8 @@
 class TransformationBuffer
 {
 
+friend class GMLWriter;
+
 public:
 
     /**

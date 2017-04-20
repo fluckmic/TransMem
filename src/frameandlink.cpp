@@ -111,7 +111,7 @@ void Frame::addLink(Link * const l){
     return;
 }
 
-void Frame::connectionTo(const FrameID &f, Link* l) {
+void Frame::connectionTo(const FrameID &f, Link *&l) {
 
     // returns the link to the frame f if there is one
     // if no link exist, the null pointer is returned

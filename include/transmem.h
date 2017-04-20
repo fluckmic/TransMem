@@ -8,11 +8,14 @@
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QQuaternion>
 #include <unordered_map>
+#include <deque>
 #include <mutex>
 
 #include "typedefs.h"
 #include "frameandlink.h"
 #include "stampedtransformation.h"
+#include "gmlwriter.h"
+
 
 
 /****************************
@@ -32,6 +35,8 @@ struct Path {
 
 class TransMem
 {
+
+friend class GMLWriter;
 
 public:
 
@@ -131,6 +136,9 @@ public:
      */
     QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const;
 
+
+    void dumpAsGraphML();
+
 protected:
 
     void shortestPath(const FrameID &srcFrame, const FrameID &dstFrame, Path &p);
@@ -145,8 +153,8 @@ protected:
 
     std::unordered_map<FrameID, Frame*> frameID2Frame;
 
-    std::vector<Frame> frames;
-    std::vector<Link> links;
+    std::deque<Frame> frames;
+    std::deque<Link> links;
 
     DurationSec storageTime{10};
 

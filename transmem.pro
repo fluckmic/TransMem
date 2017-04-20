@@ -24,12 +24,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += src/transmem.cpp \
     src/transformationbuffer.cpp \
     src/frameandlink.cpp \
-    src/stampedtransformation.cpp
+    src/stampedtransformation.cpp \
+    src/gmlwriter.cpp
 HEADERS += include/transmem.h \
     include/transformationbuffer.h \
     include/frameandlink.h \
     include/typedefs.h \
-    include/stampedtransformation.h
+    include/stampedtransformation.h \
+    include/gmlwriter.h
 
 INCLUDEPATH += include
 

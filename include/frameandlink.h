@@ -18,6 +18,8 @@ class Frame;
 class Link
 {
 
+friend class GMLWriter;
+
 public:
 
     Link(Frame *const _parent, Frame *const _child, const DurationSec &_storageTime)
@@ -66,7 +68,7 @@ public:
 
     void addLink(Link* const l);
 
-    void connectionTo(const FrameID &f, Link* l);
+    void connectionTo(const FrameID &f, Link* &l);
 
     const FrameID frameID;
 
