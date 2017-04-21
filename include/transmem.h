@@ -136,6 +136,7 @@ public:
      */
     QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const;
 
+    bool dumpAsJSON();
 
     void dumpAsGraphML();
 
@@ -159,6 +160,8 @@ protected:
     DurationSec storageTime{10};
 
     std::recursive_mutex lock;
+
+    void writeJSON(QJsonObject &json) const;
 };
 
 

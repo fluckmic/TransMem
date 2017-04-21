@@ -42,3 +42,32 @@ std::string StampedTransformation::translationAsString() const {
 
     return oss.str();
 }
+
+
+void StampedTransformation::writeJSON(QJsonObject &json) const {
+
+    QStringList timeList = (QString::fromStdString(timeAsString())).split(":");
+
+    // NOTE: assertion just during development
+    // list should always contain 4 elements
+    assert(timeList.length() > 3);
+
+    QJsonObject timeObject; timeObject.insert("1_H", timeList.at(0));
+                            timeObject.insert("2_m", timeList.at(1));
+                            timeObject.insert("3_s", timeList.at(2));
+                            timeObject.insert("4_ms", timeList.at(3));
+
+    QJsonObject rotObject; rotObject.insert("1_s", rotation.scalar());
+                           rotObject.insert("2_x", translation.x());
+                           rotObject.insert("3_y", translation.y());
+                           rotObject.insert("4_z", translation.z());
+
+    QJsonObject transObject; transObject.insert("1_s", translation.scalar());
+                             transObject.insert("2_x", translation.x());
+                             transObject.insert("3_y", translation.y());
+                             transObject.insert("4_z", translation.z());
+
+    json.insert("1_timestamp", timeObject);
+    json.insert("2_rotation", rotObject);
+    json.insert("3_translation", transObject);
+}

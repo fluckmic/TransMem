@@ -5,7 +5,7 @@
  * LINK                     *
  ****************************/
 
-void Link::addTransformation(const FrameID &srcFrame, StampedTransformation &e){
+void Link::addTransformation(const FrameID &srcFrame, StampedTransformation e){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
@@ -76,6 +76,16 @@ void Link::invertTransformation(StampedTransformation &e){
 
 }
 
+void Link::writeJSON(QJsonObject &json) const {
+
+    QJsonObject parentObject; parentObject.insert("frameID", QString::fromStdString(parent->frameID));
+    QJsonObject childObject; childObject.insert("frameID", QString::fromStdString(child->frameID));
+    QJsonObject bufferObject; buf.writeJSON(bufferObject);
+
+    json.insert("1_parent", parentObject);
+    json.insert("2_child", childObject);
+    json.insert("3_bufferedEntries", bufferObject);
+}
 
 /****************************
  * FRAME                    *
@@ -127,4 +137,24 @@ void Frame::connectionTo(const FrameID &f, Link *&l) {
             l = c;
 
     return;
+}
+
+void Frame::writeJSON(QJsonObject &json) const{
+
+    QJsonArray parentObjects;
+    for(Link* p: parents){
+        QJsonObject parentObject; parentObject.insert("frameID", QString::fromStdString(p->parent->frameID));
+        parentObjects.append(parentObject);
+    }
+
+    QJsonArray childObjects;
+    for(Link* c: children){
+        QJsonObject childObject; childObject.insert("frameID", QString::fromStdString(c->child->frameID));
+        childObjects.append(childObject);
+    }
+
+    json.insert("1_frameID", QString::fromStdString(frameID));
+    json.insert("2_parents", parentObjects);
+    json.insert("3_children", childObjects);
+
 }

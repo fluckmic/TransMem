@@ -32,7 +32,7 @@ public:
 
     void newestTransformation(const FrameID &srcFrame, StampedTransformation &e);
 
-    void addTransformation(const FrameID &srcFrame, StampedTransformation &e);
+    void addTransformation(const FrameID &srcFrame, StampedTransformation e);
 
     void transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &e);
 
@@ -41,6 +41,8 @@ public:
     Frame *const child;
 
     double weight = 1.;
+
+    void writeJSON(QJsonObject &json) const;
 
 protected:
 
@@ -75,6 +77,8 @@ public:
     std::vector<Link*> parents;
 
     std::vector<Link*> children;
+
+    void writeJSON(QJsonObject &json) const;
 
 };
 

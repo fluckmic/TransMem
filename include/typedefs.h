@@ -5,6 +5,12 @@
 #include <sstream>
 #include <chrono>
 #include <QtGui/QQuaternion>
+#include <QtGui/QGenericMatrix>
+
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QJsonDocument>
 
 #include <iostream>
 #include <iomanip>

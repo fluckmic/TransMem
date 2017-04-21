@@ -52,6 +52,8 @@ public:
      */
     void printCurrentBuffer();
 
+    void writeJSON(QJsonObject &json) const;
+
 protected:
 
     /**

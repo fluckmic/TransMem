@@ -133,3 +133,16 @@ void TransformationBuffer::interpolate(const StampedTransformation &el, const St
 
     return;
 }
+
+void TransformationBuffer::writeJSON(QJsonObject &json) const{
+
+    QJsonArray bufferedEntries;
+
+    for(StampedTransformation st : buffer){
+        QJsonObject entryObject;
+        st.writeJSON(entryObject);
+        bufferedEntries.append(entryObject);
+    }
+
+    json["bufferedEntries"] = bufferedEntries;
+}

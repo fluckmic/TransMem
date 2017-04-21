@@ -4,6 +4,7 @@
 #include "typedefs.h"
 
 struct StampedTransformation {
+
     Timestamp time;
     QQuaternion rotation;
     QQuaternion translation;
@@ -11,6 +12,8 @@ struct StampedTransformation {
     std::string timeAsString() const;
     std::string rotationAsString() const;
     std::string translationAsString() const;
+
+    void writeJSON(QJsonObject &json) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const StampedTransformation &te);
