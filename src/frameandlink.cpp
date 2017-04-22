@@ -11,7 +11,6 @@ void Link::addTransformation(const FrameID &srcFrame, StampedTransformation e){
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    // NOTE: assertion just during development
     // caller should make sure that the translation is pure
     assert(e.translation.scalar() == 0.);
 

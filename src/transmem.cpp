@@ -95,6 +95,70 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 }
 
+void TransMem::shortestPath(Path &p){
+
+    // check if the source frame exists
+    auto iterS = frameID2Frame.find(p.src);
+    if(iterS == frameID2Frame.end()){
+        // TODO: error msg
+        // no path exists for sure
+        return;
+    }
+
+    // check if the dest frame exists
+    auto iterD = frameID2Frame.find(p.dst);
+    if(iterD == frameID2Frame.end()){
+        // TODO: error msg
+        // no path exists for sure
+        return;
+    }
+
+    Frame* currFrame = (*iterS).second;
+
+    auto cmp = [](Frame *f1, Frame *f2){return f1->distance > f2->distance;};
+    std::priority_queue<Frame*, std::vector<Frame*>, decltype(cmp) > pq(cmp);
+
+    // initialize for dikstra
+    // set the distance of all frames to infinity and the predecessor to null
+    for(Frame f: frames){
+        f.distance = std::numeric_limits<double>::infinity();
+        f.predecessor = nullptr;
+        pq.push(&f);
+    }
+    // set the distance of the src frame to zero
+        currFrame->distance = 0.;
+
+    auto updateDistance = [](Frame* cu, Frame* ne){
+        double alternativeDist = cu->distance + ne->distance;
+        if(alternativeDist < ne->distance){
+            ne->distance = alternativeDist;
+            ne->predecessor = cu;
+            return;
+        }
+    };
+
+    // run dikstra
+    currFrame = pq.top(); pq.pop(); currFrame->active = false;
+    while(currFrame->frameID != p.src){
+        for(Link* l: currFrame->parents)
+            if(l->parent->active)
+                updateDistance(currFrame, l->parent);
+        for(Link* l: currFrame->children)
+            if(l->child->active)
+                updateDistance(currFrame, l->child);
+    currFrame = pq.top(); pq.pop(); currFrame->active = false;
+    }
+
+    // create shortest path
+    Link* currL;
+    currFrame->connectionTo(currFrame->predecessor->frameID, currL); p.links.push_back(currL);
+    while(currFrame->predecessor != nullptr){
+        currFrame = currFrame->predecessor;
+        currFrame->connectionTo(currFrame->predecessor->frameID, currL); p.links.push_back(currL);
+    }
+
+}
+
 bool TransMem::dumpAsJSON(){
 
     QFile file("TransMemDump.json");

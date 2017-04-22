@@ -52,7 +52,7 @@ protected:
 
     void invertTransformation(StampedTransformation &e);
 
-    TransformationBuffer buf;
+     TransformationBuffer buf;
 };
 
 
@@ -79,6 +79,11 @@ public:
     std::vector<Link*> children;
 
     void writeJSON(QJsonObject &json) const;
+
+    // needed for dikstra
+    double distance{0};
+    Frame* predecessor{nullptr};
+    bool active{true};
 
 };
 

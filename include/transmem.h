@@ -9,6 +9,7 @@
 #include <QtGui/QQuaternion>
 #include <unordered_map>
 #include <deque>
+#include <queue>
 #include <mutex>
 
 #include "typedefs.h"
@@ -142,7 +143,7 @@ public:
 
 protected:
 
-    void shortestPath(const FrameID &srcFrame, const FrameID &dstFrame, Path &p);
+    void shortestPath(Path &p);
 
     void bestPath(const FrameID &srcFrame, const FrameID &dstFrame, Timestamp &tstamp, Path &p);
 
