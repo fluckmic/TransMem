@@ -18,6 +18,26 @@
 #include "gmlwriter.h"
 
 
+/****************************
+ * NOSUCHLINKFOUNDEXCEPTION *
+ ****************************/
+
+class NoSuchLinkFoundException : public std::runtime_error {
+
+public:
+    NoSuchLinkFoundException(const FrameID &_srcFrame, const FrameID &_destFrame)
+    : std::runtime_error("no such link found: " + _srcFrame + "-" + _destFrame)
+    , srcFrame(_srcFrame)
+    , destFrame(_destFrame)
+    {}
+
+    virtual const char* what() const throw();
+
+private:
+    FrameID srcFrame;
+    FrameID destFrame;
+};
+
 
 /****************************
  * PATH                     *
@@ -27,6 +47,8 @@ struct Path {
     FrameID src;
     FrameID dst;
     std::vector<Link*> links;
+
+    void writeJSON(QJsonObject &json) const;
 };
 
 
@@ -102,7 +124,7 @@ public:
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
-    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const;
+    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp);
 
     /**
      * @fn QQuaternion getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const
@@ -118,7 +140,7 @@ public:
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
-    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const;
+    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2);
 
     /**
      * @fn QQuaternion getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const
@@ -137,7 +159,7 @@ public:
      */
     QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const;
 
-    bool dumpAsJSON();
+    void dumpAsJSON();
 
     void dumpAsGraphML();
 
@@ -149,10 +171,6 @@ protected:
 
     void calculateTransformation(const Path &p, StampedTransformation &e);
 
-    void addLink(const FrameID &srcFrame, const FrameID &destFrame, Link &l);
-
-    void getLink(const FrameID &srcFrame, const FrameID &destFrame, Link &l);
-
     std::unordered_map<FrameID, Frame*> frameID2Frame;
 
     std::deque<Frame> frames;
@@ -162,29 +180,10 @@ protected:
 
     std::recursive_mutex lock;
 
+    // JSON output
     void writeJSON(QJsonObject &json) const;
-};
-
-
-/****************************
- * NOSUCHLINKFOUNDEXCEPTION *
- ****************************/
-
-class NoSuchLinkFoundException : public std::runtime_error {
-
-public:
-    /**
-     * @brief NoSuchLinkFoundException
-     * @param srcFrame
-     * @param destFrame
-     */
-    NoSuchLinkFoundException(const FrameID &srcFrame, const FrameID &destFrame);
-
-    virtual const char* what() const throw();
-
-private:
-    FrameID srcFrame;
-    FrameID destFrame;
+    void dumpJSONfile(const QString &path, const QJsonObject &json) const;
+    void dumpPathAsJSON(const Path &p);
 };
 
 #endif // TRANSMEM_H

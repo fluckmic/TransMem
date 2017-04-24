@@ -58,9 +58,9 @@ void StampedTransformation::writeJSON(QJsonObject &json) const {
                             timeObject.insert("4_ms", timeList.at(3));
 
     QJsonObject rotObject; rotObject.insert("1_s", rotation.scalar());
-                           rotObject.insert("2_x", translation.x());
-                           rotObject.insert("3_y", translation.y());
-                           rotObject.insert("4_z", translation.z());
+                           rotObject.insert("2_x", rotation.x());
+                           rotObject.insert("3_y", rotation.y());
+                           rotObject.insert("4_z", rotation.z());
 
     QJsonObject transObject; transObject.insert("1_s", translation.scalar());
                              transObject.insert("2_x", translation.x());
