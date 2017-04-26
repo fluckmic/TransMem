@@ -75,7 +75,20 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans) {
 
    float data[]{trans(0,0),trans(0,1),trans(0,2),trans(1,0),trans(1,1),trans(1,2),trans(2,0),trans(2,1),trans(2,2)};
-   registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(QMatrix3x3(data)), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)));
+   QMatrix3x3 rM(data);
+
+   /*
+   auto det = [](const QMatrix3x3 &m){
+      return m(0,0)*(m(1,1)*m(2,2)-m(1,2)*m(2,1)) -
+             m(0,1)*(m(1,0)*m(2,2)-m(1,2)*m(2,0)) +
+             m(0,2)*(m(1,0)*m(2,1)-m(1,1)*m(2,0));
+   };
+
+   if( std::fabs(det(rM)-1.) > 1e-06)
+       std::cout << "warning: rotation matrix not normal\n";
+
+   */
+   registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)));
 
 }
 
@@ -127,7 +140,7 @@ void TransMem::shortestPath(Path &p){
         currFrame->distance = 0.;
         currFrame->active = false;
 
-    // helper alphas
+    // helper lambda's
     auto updateDistance = [](Frame* cu, Frame* ne, double w){
         double alternativeDist = cu->distance + w;
         if(alternativeDist < ne->distance){
@@ -277,13 +290,14 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, c
     FrameID currentSrcFrameID = p.src;
     StampedTransformation currentTrans;
     for(Link* l : p.links){
-       l->transformationAtTimeT(currentSrcFrameID, currentTrans);
+        l->transformationAtTimeT(currentSrcFrameID, currentTrans);
        e.rotation = currentTrans.rotation * e.rotation;
        e.translation = e.rotation * e.translation * e.rotation.inverted();
        e.translation = e.translation + currentTrans.translation;
-       if(l->child->frameID == currentSrcFrameID)
+       if(l->parent->frameID == currentSrcFrameID)
+           currentSrcFrameID = l->child->frameID;
+       else
            currentSrcFrameID = l->parent->frameID;
-       currentSrcFrameID = l->child->frameID;
     }
 
  }

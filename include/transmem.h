@@ -79,7 +79,10 @@ public:
      */
     TransMem(DurationSec _storageTime)
     : storageTime(_storageTime)
-    {}
+    {
+        if(storageTime < DurationSec(1))
+            storageTime = DurationSec(10);
+    }
 
     /**
      * @fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans)
