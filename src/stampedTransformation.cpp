@@ -1,4 +1,4 @@
-#include "stampedtransformation.h"
+#include "stampedTransformation.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -46,6 +46,7 @@ std::string StampedTransformation::translationAsString() const {
 
 void StampedTransformation::writeJSON(QJsonObject &json) const {
 
+    // this is rather ugly..
     QStringList timeList = (QString::fromStdString(timeAsString())).split(":");
 
     // NOTE: assertion just during development

@@ -2,7 +2,7 @@
 #define TRANSFORMATIONBUFFER_H
 
 #include "typedefs.h"
-#include "stampedtransformation.h"
+#include "stampedTransformation.h"
 #include <list>
 
 /**

@@ -1,4 +1,4 @@
-#include "transformationbuffer.h"
+#include "transformationBuffer.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -29,7 +29,7 @@ void TransformationBuffer::addEntry(StampedTransformation &te){
         return;
     }
 
-    // new entry is to old to be stored
+    // new entry is too old to be stored
     if( te.time + storageTime < ((StampedTransformation)buffer.back()).time ) {
         return;
     }

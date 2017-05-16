@@ -2,8 +2,8 @@
 #define FRAMEANDLINK_H
 
 #include "typedefs.h"
-#include "transformationbuffer.h"
-#include "stampedtransformation.h"
+#include "transformationBuffer.h"
+#include "stampedTransformation.h"
 
 #include <string>
 #include <vector>
@@ -28,13 +28,13 @@ public:
     , buf(_storageTime)
     {}
 
-    void oldestTransformation(const FrameID &srcFrame, StampedTransformation &e);
+    void oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
 
-    void newestTransformation(const FrameID &srcFrame, StampedTransformation &e);
+    void newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
 
-    void addTransformation(const FrameID &srcFrame, StampedTransformation e);
+    void addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation);
 
-    void transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &e);
+    void transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
 
     Frame *const parent;
 
@@ -46,11 +46,11 @@ public:
 
 protected:
 
-    enum accessType { TIME, OLDEST, NEWEST };
+    enum AccessType { TIME, OLDEST, NEWEST };
 
-    void getTransformation(const FrameID &srcFrame, StampedTransformation &e, accessType at);
+    void getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType);
 
-    void invertTransformation(StampedTransformation &e);
+    void invertTransformation(StampedTransformation &stampedTransformation);
 
      TransformationBuffer buf;
 };
@@ -68,9 +68,9 @@ public:
     : frameID(_frameID)
     {}
 
-    void addLink(Link* const l);
+    void addLink(Link* const newLink);
 
-    void connectionTo(const FrameID &f, Link* &l);
+    void connectionTo(const FrameID &destination, Link* &linkToDest);
 
     const FrameID frameID;
 

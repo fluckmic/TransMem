@@ -25,46 +25,46 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
     lock.lock();
 
     // check if frames already exist
-    auto IterSrcF = frameID2Frame.find(srcFrame);
-    auto IterDstF = frameID2Frame.find(destFrame);
+    auto iter2SrcFrame = frameID2Frame.find(srcFrame);
+    auto iter2DstFrame = frameID2Frame.find(destFrame);
 
-    Frame* sFPtr; Frame* dFPtr;
+    Frame* ptr2SrcFrame; Frame* ptr2DstFrame;
 
     // if a frame does not exist, create it
-    if(IterSrcF == frameID2Frame.end()){
+    if(iter2SrcFrame == frameID2Frame.end()){
 
         frames.emplace_back(Frame{srcFrame});
-        sFPtr = &frames.back();
-        frameID2Frame.insert({srcFrame, sFPtr});
+        ptr2SrcFrame = &frames.back();
+        frameID2Frame.insert({srcFrame, ptr2SrcFrame});
 
     }
     else
-        sFPtr = (*IterSrcF).second;
+        ptr2SrcFrame = (*iter2SrcFrame).second;
 
-    if(IterDstF == frameID2Frame.end()){
+    if(iter2DstFrame == frameID2Frame.end()){
 
         frames.emplace_back(Frame{destFrame});
-        dFPtr = &frames.back();
-        frameID2Frame.insert({destFrame, dFPtr});
+        ptr2DstFrame = &frames.back();
+        frameID2Frame.insert({destFrame, ptr2DstFrame});
 
     }
     else
-        dFPtr = (*IterDstF).second;
+        ptr2DstFrame = (*iter2DstFrame).second;
 
-    // check if the link exists
-    Link* lnkPtr = nullptr;
-    sFPtr->connectionTo(destFrame, lnkPtr);
+    // check if a link between srcFrame and destFrame exists
+    Link* ptr2Link = nullptr;
+    ptr2SrcFrame->connectionTo(destFrame, ptr2Link);
 
     // if the link does not exist, create it
-    if(lnkPtr == nullptr){
+    if(ptr2Link == nullptr){
 
-        links.emplace_back(Link{sFPtr, dFPtr, storageTime});
-        lnkPtr = &links.back();
-        sFPtr->addLink(lnkPtr);
+        links.emplace_back(Link{ptr2SrcFrame, ptr2DstFrame, storageTime});
+        ptr2Link = &links.back();
+        ptr2SrcFrame->addLink(ptr2Link);
     }
 
     // add the transformation to the link
-    lnkPtr->addTransformation(srcFrame, StampedTransformation{tstamp, qrot, qtrans});
+    ptr2Link->addTransformation(srcFrame, StampedTransformation{tstamp, qrot, qtrans});
 
     // release the lock
     lock.unlock();
@@ -74,20 +74,14 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
 void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans) {
 
-   float data[]{trans(0,0),trans(0,1),trans(0,2),trans(1,0),trans(1,1),trans(1,2),trans(2,0),trans(2,1),trans(2,2)};
+   float data[]{trans(0,0),trans(0,1),trans(0,2),
+                trans(1,0),trans(1,1),trans(1,2),
+                trans(2,0),trans(2,1),trans(2,2)};
+
    QMatrix3x3 rM(data);
 
-   /*
-   auto det = [](const QMatrix3x3 &m){
-      return m(0,0)*(m(1,1)*m(2,2)-m(1,2)*m(2,1)) -
-             m(0,1)*(m(1,0)*m(2,2)-m(1,2)*m(2,0)) +
-             m(0,2)*(m(1,0)*m(2,1)-m(1,1)*m(2,0));
-   };
+   // TODO: check if the rotation matrix is normal, emit a warning if not
 
-   if( std::fabs(det(rM)-1.) > 1e-06)
-       std::cout << "warning: rotation matrix not normal\n";
-
-   */
    registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)));
 
 }
@@ -113,86 +107,10 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 }
 
-void TransMem::shortestPath(Path &p){
+void TransMem::shortestPath(Path &path){
 
-    // check if the source frame exists
-    if(frameID2Frame.find(p.src) == frameID2Frame.end())
-      throw NoSuchLinkFoundException(p.src, p.dst);
-
-    // check if the dest frame exists
-    auto iterD = frameID2Frame.find(p.dst);
-    if(iterD == frameID2Frame.end())
-        throw NoSuchLinkFoundException(p.src, p.dst);
-
-    Frame* currFrame = (*iterD).second;
-
-    // initialize for dikstra
-    // set the distance of all frames to infinity and the predecessor to null
-    auto iter = frameID2Frame.begin();
-    while(iter != frameID2Frame.end()){
-        Frame* f = (*iter).second;
-        f->distance = std::numeric_limits<double>::infinity();
-        f->predecessor = nullptr;
-        f->active = true;
-        iter++;
-    }
-    // set the distance of the src frame to zero
-        currFrame->distance = 0.;
-        currFrame->active = false;
-
-    // helper lambda's
-    auto updateDistance = [](Frame* cu, Frame* ne, double w){
-        double alternativeDist = cu->distance + w;
-        if(alternativeDist < ne->distance){
-            ne->distance = alternativeDist;
-            ne->predecessor = cu;
-            return;
-        }
-    };
-    auto getShortest = [this](){
-        auto iter = frameID2Frame.begin();
-        double minDist = std::numeric_limits<double>::infinity();
-        Frame* ret = nullptr;
-        while(iter != frameID2Frame.end()){
-            Frame* cur = (*iter).second;
-            if(cur->distance < minDist && cur->active)
-                ret = cur;
-            iter++;
-        }
-        return ret;
-    };
-
-    // run dikstra
-    while(currFrame->frameID != p.src){
-        for(Link* l: currFrame->parents)
-            if(l->parent->active)
-                updateDistance(currFrame, l->parent, l->weight);
-        for(Link* l: currFrame->children)
-            if(l->child->active)
-                updateDistance(currFrame, l->child, l->weight);
-    currFrame = getShortest();
-
-    // no path exists
-    if(currFrame == nullptr)
-        throw NoSuchLinkFoundException(p.src, p.dst);
-
-    currFrame->active = false;
-    }
-
-    // create shortest path
-    Link* currL;
-
-    // NOTE: assertion just during development
-    // there should always be at least one predecessor
-    // since if there is a path, the path is at least of length one
-    assert(currFrame->predecessor != nullptr);
-
-    currFrame->connectionTo(currFrame->predecessor->frameID, currL); p.links.push_back(currL);
-    currFrame = currFrame->predecessor;
-    while(currFrame->predecessor != nullptr){
-        currFrame->connectionTo(currFrame->predecessor->frameID, currL); p.links.push_back(currL);
-        currFrame = currFrame->predecessor;
-    }
+    Diijkstra diijkstra(frameID2Frame);
+    diijkstra.calculateShortestPath(path);
 
 }
 
@@ -259,10 +177,6 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
     Path p{srcFrame, destFrame, std::vector<Link*>()};
     shortestPath(p);
 
-    // NOTE: debugging just during development
-    // debugging, dump path as json file
-    dumpPathAsJSON(p);
-
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
     calculateTransformation(p, t);
@@ -285,15 +199,21 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, c
 
 }
 
- void TransMem::calculateTransformation(const Path &p, StampedTransformation &e){
+ void TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation){
 
-    FrameID currentSrcFrameID = p.src;
+    FrameID currentSrcFrameID = path.src;
     StampedTransformation currentTrans;
-    for(Link* l : p.links){
+
+    // calculate transformation along the path
+    for(Link* l : path.links){
+        // get the transformation of the current link
         l->transformationAtTimeT(currentSrcFrameID, currentTrans);
-       e.rotation = currentTrans.rotation * e.rotation;
-       e.translation = e.rotation * e.translation * e.rotation.inverted();
-       e.translation = e.translation + currentTrans.translation;
+
+       stampedTransformation.rotation = currentTrans.rotation * stampedTransformation.rotation;
+       stampedTransformation.translation = stampedTransformation.rotation * stampedTransformation.translation * stampedTransformation.rotation.inverted();
+       stampedTransformation.translation = stampedTransformation.translation + currentTrans.translation;
+
+       // choose new current frame depending on the direction of the link
        if(l->parent->frameID == currentSrcFrameID)
            currentSrcFrameID = l->child->frameID;
        else

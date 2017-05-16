@@ -7,17 +7,19 @@
 QT += gui
 
 HEADERS += include/transmem.h \
-    include/transformationbuffer.h \
-    include/frameandlink.h \
     include/typedefs.h \
-    include/stampedtransformation.h \
-    include/gmlwriter.h
+    include/frameAndLink.h \
+    include/gmlWriter.h \
+    include/stampedTransformation.h \
+    include/diijkstra.h \
+    include/transformationBuffer.h
 
 SOURCES += src/transmem.cpp \
-    src/transformationbuffer.cpp \
-    src/frameandlink.cpp \
-    src/stampedtransformation.cpp \
-    src/gmlwriter.cpp
+    src/frameAndLink.cpp \
+    src/gmlWriter.cpp \
+    src/stampedTransformation.cpp \
+    src/transformationBuffer.cpp \
+    src/diijkstra.cpp
 
 INCLUDEPATH += include
 

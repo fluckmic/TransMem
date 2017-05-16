@@ -1,77 +1,83 @@
-#include "frameandlink.h"
+#include "frameAndLink.h"
 
 
 /****************************
  * LINK                     *
  ****************************/
 
-void Link::addTransformation(const FrameID &srcFrame, StampedTransformation e){
+void Link::addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
     // caller should make sure that the translation is pure
-    assert(e.translation.scalar() == 0.);
+    assert(stampedTransformation.translation.scalar() == 0.);
 
     if(child->frameID == srcFrame)
-        invertTransformation(e);
+        invertTransformation(stampedTransformation);
 
-    buf.addEntry(e);
+    buf.addEntry(stampedTransformation);
 
     return;
 }
 
-void Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &e){
+void Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    getTransformation(srcFrame, e, TIME);
+    getTransformation(srcFrame, stampedTransformation, TIME);
 
     return;
 }
 
-void Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &e){
+void Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    getTransformation(srcFrame, e, OLDEST);
+    getTransformation(srcFrame, stampedTransformation, OLDEST);
 
     return;
 }
 
-void Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &e){
+void Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    getTransformation(srcFrame, e, NEWEST);
+    getTransformation(srcFrame, stampedTransformation, NEWEST);
 
     return;
 }
 
-void Link::getTransformation(const FrameID &srcFrame, StampedTransformation &e, accessType at){
+void Link::getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType){
 
-    switch(at){
+    switch(accessType){
 
-    case TIME:      buf.entryAt(e);     break;
-    case OLDEST:    buf.oldestEntry(e); break;
-    case NEWEST:    buf.newestEntry(e); break;
+    case TIME:      buf.entryAt(stampedTransformation);
+                    break;
+    case OLDEST:    buf.oldestEntry(stampedTransformation);
+                    break;
+    case NEWEST:    buf.newestEntry(stampedTransformation);
+                    break;
+    default:        assert(false);
+                    /* we should never reach this point but
+                       it's always good to have a default plan. */
     }
 
     if(child->frameID == srcFrame)
-        invertTransformation(e);
+        invertTransformation(stampedTransformation);
 }
 
-void Link::invertTransformation(StampedTransformation &e){
+void Link::invertTransformation(StampedTransformation &stampedTransformation){
 
-    e.rotation = e.rotation.inverted();
-    e.translation = -(e.rotation*e.translation*e.rotation.conjugated());
+    stampedTransformation.rotation = stampedTransformation.rotation.inverted();
+    stampedTransformation.translation = -(stampedTransformation.rotation*stampedTransformation.translation*stampedTransformation.rotation.conjugated());
 
 }
 
@@ -90,50 +96,50 @@ void Link::writeJSON(QJsonObject &json) const {
  * FRAME                    *
  ****************************/
 
-void Frame::addLink(Link * const l){
+void Frame::addLink(Link * const newLink){
 
     // NOTE: assertion just during development
     // caller passes a valid link object
-    assert(l != nullptr);
+    assert(newLink != nullptr);
 
     // link is connected to actual frames
-    assert(l->parent && l->child != nullptr);
+    assert(newLink->parent && newLink->child != nullptr);
 
     //the link leads from this frame to another frame
-    assert(frameID == l->parent->frameID);
+    assert(frameID == newLink->parent->frameID);
 
     //check if there already exist such a link
     //in either direction
-    Link* lnk = nullptr;
-    connectionTo(l->child->frameID, lnk);
-    if(lnk != nullptr)  return;
+    Link* excistingLink = nullptr;
+    connectionTo(newLink->child->frameID, excistingLink);
+    if(excistingLink != nullptr)  return;
 
-    l->child->connectionTo(frameID, lnk);
-    if(lnk != nullptr)  return;
+    newLink->child->connectionTo(frameID, excistingLink);
+    if(excistingLink != nullptr)  return;
 
     //add link to this frame
-    children.push_back(l);
+    children.push_back(newLink);
 
     //add link to the destination
-    l->child->parents.push_back(l);
+    newLink->child->parents.push_back(newLink);
 
     return;
 }
 
-void Frame::connectionTo(const FrameID &f, Link *&l) {
+void Frame::connectionTo(const FrameID &destination, Link *&linkToDest) {
 
     // returns the link to the frame f if there is one
     // if no link exist, the null pointer is returned
 
-    l = nullptr;
+    linkToDest = nullptr;
 
     for(Link* p : parents)
-        if(p->parent->frameID == f)
-           l = p;
+        if(p->parent->frameID == destination)
+           linkToDest = p;
 
     for(Link* c : children)
-        if(c->child->frameID == f)
-            l = c;
+        if(c->child->frameID == destination)
+            linkToDest = c;
 
     return;
 }

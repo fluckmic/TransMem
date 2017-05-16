@@ -13,9 +13,10 @@
 #include <mutex>
 
 #include "typedefs.h"
-#include "frameandlink.h"
-#include "stampedtransformation.h"
-#include "gmlwriter.h"
+#include "frameAndLink.h"
+#include "stampedTransformation.h"
+#include "gmlWriter.h"
+#include "diijkstra.h"
 
 
 /****************************
@@ -77,8 +78,8 @@ public:
      * @param dur buffer duration in seconds
      *
      */
-    TransMem(DurationSec _storageTime)
-    : storageTime(_storageTime)
+    TransMem(DurationSec storageTime)
+    : storageTime(storageTime)
     {
         if(storageTime < DurationSec(1))
             storageTime = DurationSec(10);

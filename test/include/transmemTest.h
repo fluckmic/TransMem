@@ -3,6 +3,9 @@
 #include "transmem.h"
 #include <math.h>
 
+#include "ctime"
+#include "random"
+
 Q_DECLARE_METATYPE(FrameID)
 
 using PrequelSequence = std::vector< std::pair<FrameID, FrameID> > ;
@@ -27,7 +30,10 @@ class transmemTest : public QObject {
 
  protected:
     bool compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth, const double eps);
+
     const double precision = 1e-06;
+
+    QMatrix4x4 createRandTMatrix();
 
     QMatrix4x4 tRz(double a);
     QMatrix4x4 tRx(double a);

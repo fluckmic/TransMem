@@ -1,4 +1,4 @@
-#include "gmlwriter.h"
+#include "gmlWriter.h"
 
 bool GMLWriter::write(TransMem * const tm){
 

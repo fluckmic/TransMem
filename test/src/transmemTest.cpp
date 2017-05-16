@@ -41,7 +41,8 @@ void transmemTest::throwsException_data() {
 
 void transmemTest::throwsException() {
 
-    /*
+    QMatrix4x4 test = this->createRandTMatrix();
+
     // fetch test data
     QFETCH(FrameID,srcFrame);
     QFETCH(FrameID, destFrame);
@@ -66,7 +67,6 @@ void transmemTest::throwsException() {
                               break;
     };
 
-    */
 }
 
 void transmemTest::simpleQueries_data(){
@@ -105,7 +105,6 @@ void transmemTest::simpleQueries_data(){
 
 void transmemTest::simpleQueries(){
 
-    /*
     // fetch test data
     QFETCH(QMatrix4x4, transformation);
 
@@ -141,7 +140,7 @@ void transmemTest::simpleQueries(){
     // get the same transformation back if queried a little earlier in the opposite direction (just one entry)
     ret = t.getLink("f2", "f1", tStamp - dt);
     QVERIFY(compareHelper(transformation.inverted(), ret, precision));
-    */
+
 
 }
 
@@ -201,6 +200,58 @@ bool transmemTest::compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth, d
             if(std::fabs(ref(ii,jj)-oth(ii,jj)) > eps)
                 return false;
     return true;
+}
+
+QMatrix4x4 transmemTest::createRandTMatrix(){
+
+    double lowerBoundFloat = -1000;
+    double upperBoundFloat =  1000;
+
+    unsigned int maxNumbOfMatrices = 10;
+
+    std::uniform_real_distribution<double> unif(lowerBoundFloat, upperBoundFloat);
+    std::default_random_engine re;
+
+    std::srand(std::time(0)); int numbOfMat = ( std::rand() % maxNumbOfMatrices ) + 5;
+
+    QMatrix4x4 ret;
+
+    for(int matCount = 0; matCount < numbOfMat; matCount++){
+
+        // rotation or translation matrix
+        std::srand(std::time(0)); int transOrRot = std::rand() % 2;
+
+        switch(transOrRot){
+
+        // translation
+        case 0:
+            ret = ret * tTr(unif(re), unif(re), unif(re));
+            break;
+
+        // rotation
+        case 1:
+            // x, y or z rotation
+            std::srand(std::time(0)); int xyzRotation = std::rand() % 3;
+            switch(xyzRotation){
+            //x
+            case 0:
+                ret = ret * tRx(unif(re));
+                break;
+            //y
+            case 1:
+                ret = ret * tRx(unif(re));
+                break;
+            //z
+            case 2:
+                ret = ret * tRz(unif(re));
+                break;
+            }
+            break;
+
+        }
+    }
+
+    return ret;
 }
 
 QMatrix4x4  transmemTest::tRz(double a){    return QMatrix4x4(   1,              0,            0,  0,
