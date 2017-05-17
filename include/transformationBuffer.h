@@ -19,15 +19,17 @@ public:
     : storageTime(d)
     {}
 
-    bool oldestEntry(StampedTransformation &te);
-
-    bool newestEntry(StampedTransformation &te);
-
     bool entryAt(StampedTransformation &te);
 
     bool addEntry(StampedTransformation &te);
 
-    bool distanceToCloserEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToNextEntry);
+    bool oldestEntry(StampedTransformation &te);
+
+    bool newestEntry(StampedTransformation &te);
+
+    bool tStampOldestEntry(Timestamp &ts);
+
+    bool distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry);
 
     void printCurrentBuffer();
 

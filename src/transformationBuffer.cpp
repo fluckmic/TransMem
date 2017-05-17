@@ -3,7 +3,7 @@
 using namespace std;
 using namespace std::chrono;
 
-bool TransformationBuffer::distanceToCloserEntry(const Timestamp &tStamp, milliseconds &distanceToNextEntry){
+bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, milliseconds &distanceToCloserEntry){
 
     milliseconds tStampMS = chrono::duration_cast<milliseconds>(tStamp.time_since_epoch());
 
@@ -15,7 +15,7 @@ bool TransformationBuffer::distanceToCloserEntry(const Timestamp &tStamp, millis
     // to the newest entry in the buffer
     if( tStamp > ((StampedTransformation)buffer.back()).time ){
 
-        distanceToNextEntry = (tStampMS - duration_cast<milliseconds>(((StampedTransformation)buffer.back()).time.time_since_epoch()));
+        distanceToCloserEntry = (tStampMS - duration_cast<milliseconds>(((StampedTransformation)buffer.back()).time.time_since_epoch()));
         return true;
     }
 
@@ -23,7 +23,7 @@ bool TransformationBuffer::distanceToCloserEntry(const Timestamp &tStamp, millis
     // to the oldest entry in the buffer
     if( tStamp < ((StampedTransformation)buffer.front()).time ){
 
-        distanceToNextEntry = (duration_cast<milliseconds>(((StampedTransformation)buffer.back()).time.time_since_epoch()) - tStampMS);
+        distanceToCloserEntry = (duration_cast<milliseconds>(((StampedTransformation)buffer.back()).time.time_since_epoch()) - tStampMS);
         return true;
     }
 
@@ -31,7 +31,7 @@ bool TransformationBuffer::distanceToCloserEntry(const Timestamp &tStamp, millis
     auto iterF = find_if(buffer.begin(), buffer.end(), [&tStamp](const StampedTransformation &e){ return tStamp == e.time; });
     if( iterF != buffer.end() ){
 
-        distanceToNextEntry = milliseconds::min();
+        distanceToCloserEntry = milliseconds::min();
         return true;
     }
 
@@ -42,11 +42,11 @@ bool TransformationBuffer::distanceToCloserEntry(const Timestamp &tStamp, millis
 
     milliseconds distRight;
 
-    distanceToNextEntry = tStampMS - duration_cast<milliseconds>(((StampedTransformation)*iterA).time.time_since_epoch());
+    distanceToCloserEntry = tStampMS - duration_cast<milliseconds>(((StampedTransformation)*iterA).time.time_since_epoch());
     distRight = duration_cast<milliseconds>(((StampedTransformation)*(++iterA)).time.time_since_epoch()) - tStampMS;
 
-    if(distRight < distanceToNextEntry)
-        distanceToNextEntry = distRight;
+    if(distRight < distanceToCloserEntry)
+        distanceToCloserEntry = distRight;
 
     return true;
 }
@@ -85,6 +85,7 @@ bool TransformationBuffer::addEntry(StampedTransformation &te){
     // if new entry is newer than every entry, insert it direct in
     // front of the list (should be the case most of the time)
     if( te.time > ((StampedTransformation)buffer.back()).time ){
+
         buffer.push_back(te);
         pruneStorage();
         return true;
@@ -93,6 +94,7 @@ bool TransformationBuffer::addEntry(StampedTransformation &te){
     // if new entry is older than every entry, insert it direct at
     // the back of the list
     if( te.time < ((StampedTransformation)buffer.front()).time ){
+
         buffer.push_front(te);
         pruneStorage();
         return true;

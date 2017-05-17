@@ -5,6 +5,12 @@
  * LINK                     *
  ****************************/
 
+bool Link::distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry){
+
+    return buf.distanceToNextClosestEntry(tStamp, distanceToCloserEntry);
+}
+
+
 bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation){
 
     // NOTE: assertion just during development

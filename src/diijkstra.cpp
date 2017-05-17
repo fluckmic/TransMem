@@ -1,15 +1,15 @@
 #include "diijkstra.h"
 
-void Diijkstra::calculateShortestPath(Path &path){
+bool Diijkstra::calculateShortestPath(Path &path){
 
     // check if the source frame exists
     if(frameID2Frame.find(path.src) == frameID2Frame.end())
-      throw NoSuchLinkFoundException(path.src, path.dst);
+      return false;
 
     // check if the destination frame exists
     auto iter2DstFrame = frameID2Frame.find(path.dst);
     if(iter2DstFrame == frameID2Frame.end())
-        throw NoSuchLinkFoundException(path.src, path.dst);
+       return false;
 
     // we start from the destination frame and search a path
     // to the source frame, that allows us to create the path from
@@ -18,9 +18,12 @@ void Diijkstra::calculateShortestPath(Path &path){
 
     initializeGraph();
 
-    searchPath(path);
+    if(!searchPath(path))
+        return false;
 
     getPath(path);
+
+    return true;
 }
 
 void Diijkstra::initializeGraph(){
@@ -41,7 +44,7 @@ void Diijkstra::initializeGraph(){
 
 }
 
-void Diijkstra::searchPath(Path &path){
+bool Diijkstra::searchPath(Path &path){
 
     while(ptr2CurrFrame->frameID != path.src){
         // update distance between current node and its adjascent nodes
@@ -52,9 +55,12 @@ void Diijkstra::searchPath(Path &path){
             if(l->child->active)
                 updateDistance(l->child, l->weight);
 
-        set2ShortestRemaining(path);
+        if(!set2ShortestRemaining())
+            return false;
     }
 
+    // found a path
+    return true;
 }
 
 void Diijkstra::getPath(Path &path){
@@ -81,7 +87,7 @@ void Diijkstra::getPath(Path &path){
     }
 }
 
-void Diijkstra::set2ShortestRemaining(Path &path){
+bool Diijkstra::set2ShortestRemaining(){
 
     // set ptr2CurrFrame to the shortest active frame
     // one could improve the performance by using a priority queue..
@@ -101,9 +107,11 @@ void Diijkstra::set2ShortestRemaining(Path &path){
 
     // no path exists
     if(ptr2CurrFrame == nullptr)
-        throw NoSuchLinkFoundException(path.src, path.dst);
+        return false;
 
     ptr2CurrFrame->active = false;
+
+    return true;
 }
 
 void Diijkstra::updateDistance(Frame *ptr2adjFrame, double w){

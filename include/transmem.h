@@ -27,7 +27,7 @@ class NoSuchLinkFoundException : public std::runtime_error {
 
 public:
     NoSuchLinkFoundException(const FrameID &_srcFrame, const FrameID &_destFrame)
-    : std::runtime_error("no such link found: " + _srcFrame + "-" + _destFrame)
+    : std::runtime_error("No such link found: " + _srcFrame + "-" + _destFrame)
     , srcFrame(_srcFrame)
     , destFrame(_destFrame)
     {}
@@ -37,6 +37,25 @@ public:
 private:
     FrameID srcFrame;
     FrameID destFrame;
+};
+
+/***************************
+ * EMPTYLINKQUERYEXCEPTION *
+ ***************************/
+
+class EmptyLinkQueryException : public std::runtime_error {
+
+public:
+    EmptyLinkQueryException(const Link &emptyLink)
+    : std::runtime_error("Queried an empty link: " + emptyLink.parent->frameID
+                         + "-" + emptyLink.child->frameID)
+    , emptyLink(emptyLink)
+    {}
+
+    virtual const char* what() const throw();
+
+private:
+    Link emptyLink;
 };
 
 
@@ -161,7 +180,7 @@ public:
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
-    QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const;
+    QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp);
 
     void dumpAsJSON();
 
@@ -169,11 +188,11 @@ public:
 
 protected:
 
-    void shortestPath(Path &p);
+    bool shortestPath(Path &p);
 
-    void bestPath(const FrameID &srcFrame, const FrameID &dstFrame, Timestamp &tstamp, Path &p);
+    bool calculateBestPointInTime(Path &p, Timestamp &tStampBestPointInTime, Link *ptr2EmptyLink);
 
-    void calculateTransformation(const Path &p, StampedTransformation &e);
+    bool calculateTransformation(const Path &p, StampedTransformation &e, Link *ptr2EmptyLink);
 
     std::unordered_map<FrameID, Frame*> frameID2Frame;
 

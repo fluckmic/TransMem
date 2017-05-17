@@ -14,15 +14,15 @@ public:
     : frameID2Frame(frameID2Frame)
     {}
 
-    void calculateShortestPath(Path &path);
+    bool calculateShortestPath(Path &path);
 
 protected:
 
     void initializeGraph();
-    void searchPath(Path &path);
+    bool searchPath(Path &path);
     void getPath(Path &path);
 
-    void set2ShortestRemaining(Path &path);
+    bool set2ShortestRemaining();
     void updateDistance(Frame *adjFrame, double w);
 
     std::unordered_map<FrameID, Frame*> frameID2Frame;

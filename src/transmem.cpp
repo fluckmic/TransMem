@@ -13,6 +13,17 @@ const char* NoSuchLinkFoundException::what() const throw(){
     return std::runtime_error::what();
 }
 
+
+/****************************
+ * EMPTYLINKQUERYEXCEPTION *
+ ****************************/
+
+const char* EmptyLinkQueryException::what() const throw(){
+
+    return std::runtime_error::what();
+}
+
+
 /****************************
  * TRANSMEM                 *
  ****************************/
@@ -109,10 +120,10 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 }
 
-void TransMem::shortestPath(Path &path){
+bool TransMem::shortestPath(Path &path){
 
     Diijkstra diijkstra(frameID2Frame);
-    diijkstra.calculateShortestPath(path);
+    return diijkstra.calculateShortestPath(path);
 
 }
 
@@ -177,13 +188,21 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
 
     // search for shortest path between source frame and  destination frame
     Path p{srcFrame, destFrame, std::vector<Link*>()};
-    shortestPath(p);
+
+    if(!shortestPath(p)){
+        lock.unlock();
+        throw NoSuchLinkFoundException(srcFrame, destFrame);
+    }
 
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
-    calculateTransformation(p, t);
+    Link *ptr2EmptyLink;
+    if(!calculateTransformation(p, t, ptr2EmptyLink)){
+        lock.unlock();
+        throw EmptyLinkQueryException(*ptr2EmptyLink);
+    }
 
-    // release the lock
+     // release the lock
     lock.unlock();
 
     // convert to QMatrix4x4
@@ -201,7 +220,50 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, c
 
 }
 
- void TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation){
+QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) {
+
+    if(srcFrame == destFrame)
+        throw std::invalid_argument("Not allowed to query for link if source frame is equal to destination frame.");
+
+    // get the lock
+    lock.lock();
+
+    // search for shortest path between source frame and  destination frame
+    Path p{srcFrame, destFrame, std::vector<Link*>()};
+    if(!shortestPath(p)){
+        lock.unlock();
+        throw NoSuchLinkFoundException(srcFrame, destFrame);
+    }
+
+    // evaluate best point in time
+    Link* ptr2EmptyLink;
+    if(!calculateBestPointInTime(p, tstamp, ptr2EmptyLink)){
+        lock.unlock();
+        throw EmptyLinkQueryException(*ptr2EmptyLink);
+    }
+
+    // calculate transformation along path
+    StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
+    if(!calculateTransformation(p, t, ptr2EmptyLink)){
+        lock.unlock();
+        throw EmptyLinkQueryException(*ptr2EmptyLink);
+    }
+
+     // release the lock
+    lock.unlock();
+
+    // convert to QMatrix4x4
+    QMatrix3x3 rot = t.rotation.toRotationMatrix();
+    QMatrix4x4 ret(rot);
+    ret(0,3) = t.translation.x(); ret(1,3) = t.translation.y(); ret(2,3) = t.translation.z();
+
+    return ret;
+
+}
+
+ bool TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation, Link *ptr2EmptyLink){
+
+    // we asume the thread already holds the lock.
 
     FrameID currentSrcFrameID = path.src;
     StampedTransformation currentTrans;
@@ -210,7 +272,8 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, c
     for(Link* l : path.links){
         // get the transformation of the current link
         if(!l->transformationAtTimeT(currentSrcFrameID, currentTrans)){
-            throw NoSuchLinkFoundException(path.src, path.dst);
+            ptr2EmptyLink = l;
+            return false;
         }
 
        stampedTransformation.rotation = currentTrans.rotation * stampedTransformation.rotation;
@@ -223,7 +286,42 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, c
        else
            currentSrcFrameID = l->parent->frameID;
     }
+     return true;
+ }
 
+ bool TransMem::calculateBestPointInTime(Path &p, Timestamp &tStampBestPoinInTime, Link *ptr2EmptyLink){
+
+     // we search for the best transformation in the timespan between now and the time when
+     // the oldest entry was inserted of all the links in the path
+     tStampBestPoinInTime = std::chrono::high_resolution_clock::now();
+     Timestamp tStampOldest = tStampBestPoinInTime;
+
+     StampedTransformation stampedTrans;
+     for(Link* l : p.links){
+        if(!l->oldestTransformation(l->parent->frameID, stampedTrans)){
+            ptr2EmptyLink = l;
+            return false;
+        }
+        if(stampedTrans.time < tStampOldest)
+            tStampOldest = stampedTrans.time;
+     }
+
+     std::chrono::milliseconds sum(0); std::chrono::milliseconds temp(0);
+     std::chrono::milliseconds best; best = std::chrono::milliseconds::max();
+     for(Timestamp tStampCurr = tStampBestPoinInTime; tStampCurr < tStampOldest; tStampCurr = tStampCurr - std::chrono::milliseconds(100)){
+
+         for(Link* l: p.links){
+            l->distanceToNextClosestEntry(tStampCurr, temp);
+            sum += temp;
+         }
+
+         if(sum < best){
+             best = sum;
+             tStampBestPoinInTime = tStampCurr;
+         }
+     }
+
+    return true;
  }
 
 /****************************

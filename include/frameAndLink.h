@@ -36,6 +36,8 @@ public:
 
     bool transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
 
+    bool distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry);
+
     Frame *const parent;
 
     Frame *const child;
