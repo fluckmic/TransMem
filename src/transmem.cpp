@@ -177,6 +177,9 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
     Path p{srcFrame, destFrame, std::vector<Link*>()};
     shortestPath(p);
 
+    // TODO: just for debugging
+    this->dumpPathAsJSON(p);
+
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
     calculateTransformation(p, t);
@@ -210,7 +213,7 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, c
         l->transformationAtTimeT(currentSrcFrameID, currentTrans);
 
        stampedTransformation.rotation = currentTrans.rotation * stampedTransformation.rotation;
-       stampedTransformation.translation = stampedTransformation.rotation * stampedTransformation.translation * stampedTransformation.rotation.inverted();
+       stampedTransformation.translation = currentTrans.rotation * stampedTransformation.translation * currentTrans.rotation.inverted();
        stampedTransformation.translation = stampedTransformation.translation + currentTrans.translation;
 
        // choose new current frame depending on the direction of the link
