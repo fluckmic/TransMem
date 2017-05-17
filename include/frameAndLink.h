@@ -28,13 +28,13 @@ public:
     , buf(_storageTime)
     {}
 
-    void oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
+    bool oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
 
-    void newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
+    bool newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
 
-    void addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation);
+    bool addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation);
 
-    void transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
+    bool transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
 
     Frame *const parent;
 
@@ -48,7 +48,7 @@ protected:
 
     enum AccessType { TIME, OLDEST, NEWEST };
 
-    void getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType);
+    bool getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType);
 
     void invertTransformation(StampedTransformation &stampedTransformation);
 

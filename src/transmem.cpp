@@ -64,7 +64,9 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
     }
 
     // add the transformation to the link
-    ptr2Link->addTransformation(srcFrame, StampedTransformation{tstamp, qrot, qtrans});
+    if(!ptr2Link->addTransformation(srcFrame, StampedTransformation{tstamp, qrot, qtrans})){
+        // TODO debug message: entry not stored since entry is to old
+    }
 
     // release the lock
     lock.unlock();
@@ -177,9 +179,6 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
     Path p{srcFrame, destFrame, std::vector<Link*>()};
     shortestPath(p);
 
-    // TODO: just for debugging
-    this->dumpPathAsJSON(p);
-
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
     calculateTransformation(p, t);
@@ -210,7 +209,9 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, c
     // calculate transformation along the path
     for(Link* l : path.links){
         // get the transformation of the current link
-        l->transformationAtTimeT(currentSrcFrameID, currentTrans);
+        if(!l->transformationAtTimeT(currentSrcFrameID, currentTrans)){
+            throw NoSuchLinkFoundException(path.src, path.dst);
+        }
 
        stampedTransformation.rotation = currentTrans.rotation * stampedTransformation.rotation;
        stampedTransformation.translation = currentTrans.rotation * stampedTransformation.translation * currentTrans.rotation.inverted();

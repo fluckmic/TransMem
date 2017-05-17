@@ -5,7 +5,7 @@
  * LINK                     *
  ****************************/
 
-void Link::addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation){
+bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
@@ -17,61 +17,60 @@ void Link::addTransformation(const FrameID &srcFrame, StampedTransformation stam
     if(child->frameID == srcFrame)
         invertTransformation(stampedTransformation);
 
-    buf.addEntry(stampedTransformation);
-
-    return;
+    return buf.addEntry(stampedTransformation);
 }
 
-void Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
+bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    getTransformation(srcFrame, stampedTransformation, TIME);
-
-    return;
+    return getTransformation(srcFrame, stampedTransformation, TIME);
 }
 
-void Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
+bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    getTransformation(srcFrame, stampedTransformation, OLDEST);
-
-    return;
+    return getTransformation(srcFrame, stampedTransformation, OLDEST);
 }
 
-void Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
+bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    getTransformation(srcFrame, stampedTransformation, NEWEST);
-
-    return;
+    return getTransformation(srcFrame, stampedTransformation, NEWEST);
 }
 
-void Link::getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType){
+bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType){
+
+    bool ret = false;
 
     switch(accessType){
 
-    case TIME:      buf.entryAt(stampedTransformation);
+    case TIME:      ret = buf.entryAt(stampedTransformation);
                     break;
-    case OLDEST:    buf.oldestEntry(stampedTransformation);
+    case OLDEST:    ret = buf.oldestEntry(stampedTransformation);
                     break;
-    case NEWEST:    buf.newestEntry(stampedTransformation);
+    case NEWEST:    ret = buf.newestEntry(stampedTransformation);
                     break;
     default:        assert(false);
                     /* we should never reach this point but
                        it's always good to have a default plan. */
     }
 
+    if(!ret)
+        return false;
+
     if(child->frameID == srcFrame)
         invertTransformation(stampedTransformation);
+
+    return true;
 }
 
 void Link::invertTransformation(StampedTransformation &stampedTransformation){

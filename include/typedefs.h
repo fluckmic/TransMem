@@ -21,6 +21,7 @@
 using FrameID = std::string;
 using Timestamp = std::chrono::time_point<std::chrono::high_resolution_clock>;
 using DurationSec = std::chrono::seconds;
+using DurationMilliSec = std::chrono::milliseconds;
 using DurationNanoSec = std::chrono::nanoseconds;
 
 #endif // TYPEDEFS_H

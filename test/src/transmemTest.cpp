@@ -260,5 +260,4 @@ bool transmemTest::compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth, d
     return true;
 }
 
-
 QTEST_MAIN(transmemTest)

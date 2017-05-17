@@ -3,35 +3,83 @@
 using namespace std;
 using namespace std::chrono;
 
-void TransformationBuffer::oldestEntry(StampedTransformation &te){
+bool TransformationBuffer::distanceToCloserEntry(const Timestamp &tStamp, milliseconds &distanceToNextEntry){
+
+    milliseconds tStampMS = chrono::duration_cast<milliseconds>(tStamp.time_since_epoch());
+
+    if(buffer.empty()){
+        return false;
+    }
+
+    // if t is newer than every entry, we just need to know the distLeft
+    // to the newest entry in the buffer
+    if( tStamp > ((StampedTransformation)buffer.back()).time ){
+
+        distanceToNextEntry = (tStampMS - duration_cast<milliseconds>(((StampedTransformation)buffer.back()).time.time_since_epoch()));
+        return true;
+    }
+
+    // if t is older than every entry, we just need to know the distLeft
+    // to the oldest entry in the buffer
+    if( tStamp < ((StampedTransformation)buffer.front()).time ){
+
+        distanceToNextEntry = (duration_cast<milliseconds>(((StampedTransformation)buffer.back()).time.time_since_epoch()) - tStampMS);
+        return true;
+    }
+
+    // return zero if we hit an entry
+    auto iterF = find_if(buffer.begin(), buffer.end(), [&tStamp](const StampedTransformation &e){ return tStamp == e.time; });
+    if( iterF != buffer.end() ){
+
+        distanceToNextEntry = milliseconds::min();
+        return true;
+    }
+
+    // otherwise we have to choose the minima
+    auto iterA = adjacent_find(buffer.begin(), buffer.end(),
+                               [&tStamp](const StampedTransformation &el, const StampedTransformation &er)
+                               {return (el.time < tStamp && tStamp < er.time); });
+
+    milliseconds distRight;
+
+    distanceToNextEntry = tStampMS - duration_cast<milliseconds>(((StampedTransformation)*iterA).time.time_since_epoch());
+    distRight = duration_cast<milliseconds>(((StampedTransformation)*(++iterA)).time.time_since_epoch()) - tStampMS;
+
+    if(distRight < distanceToNextEntry)
+        distanceToNextEntry = distRight;
+
+    return true;
+}
+
+bool TransformationBuffer::oldestEntry(StampedTransformation &te){
 
     if(buffer.empty())
-        return;
+        return false;
 
     te = buffer.front();
-    return;
+    return true;
 }
 
-void TransformationBuffer::newestEntry(StampedTransformation &te){
+bool TransformationBuffer::newestEntry(StampedTransformation &te){
 
     if(buffer.empty())
-        return;
+        return false;
 
     te = buffer.back();
-    return;
+    return true;
 }
 
-void TransformationBuffer::addEntry(StampedTransformation &te){
+bool TransformationBuffer::addEntry(StampedTransformation &te){
 
     // buffer is empty, insert new entry and return
     if( buffer.empty() ){
         buffer.push_back(te);
-        return;
+        return true;
     }
 
     // new entry is too old to be stored
     if( te.time + storageTime < ((StampedTransformation)buffer.back()).time ) {
-        return;
+        return false;
     }
 
     // if new entry is newer than every entry, insert it direct in
@@ -39,7 +87,7 @@ void TransformationBuffer::addEntry(StampedTransformation &te){
     if( te.time > ((StampedTransformation)buffer.back()).time ){
         buffer.push_back(te);
         pruneStorage();
-        return;
+        return true;
     }
 
     // if new entry is older than every entry, insert it direct at
@@ -47,21 +95,21 @@ void TransformationBuffer::addEntry(StampedTransformation &te){
     if( te.time < ((StampedTransformation)buffer.front()).time ){
         buffer.push_front(te);
         pruneStorage();
-        return;
+        return true;
     }
 
     // if entry already exists, just update it properly
     auto iterF = find_if(buffer.begin(), buffer.end(), [&te](const StampedTransformation &e){ return te.time == e.time; });
     if( iterF != buffer.end() ){
         *iterF = te;
-        return;
+        return true;
     }
 
     // insert new entry in between two existing entries
     auto iterA = adjacent_find(buffer.begin(), buffer.end(), [&te](const StampedTransformation &el, const StampedTransformation &er){ return (el.time < te.time && te.time < er.time); });
     buffer.insert(++iterA, te);
     pruneStorage();
-    return;
+    return true;
 }
 
 void TransformationBuffer::pruneStorage(){
@@ -81,22 +129,22 @@ void TransformationBuffer::printCurrentBuffer(){
         cout << te;
 }
 
-void TransformationBuffer::entryAt(StampedTransformation &te) {
+bool TransformationBuffer::entryAt(StampedTransformation &te) {
 
-    // just return if buffer is empty
+    // return false if buffer is empty
     if(buffer.empty())
-        return;
+        return false;
 
     // return the newest entry if queried for en even newer one
     if(te.time >= ((StampedTransformation)buffer.back()).time){
         te = buffer.back();
-        return;
+        return true;
     }
 
     // return the oldest entry queried for an even older one
     if(te.time <= ((StampedTransformation)buffer.front()).time){
         te = buffer.front();
-        return;
+        return true;
     }
 
     // search the two closest entries
@@ -106,12 +154,13 @@ void TransformationBuffer::entryAt(StampedTransformation &te) {
     // return left entry if distance between entries is to small
     if(tr.time - tl.time < minDistForInterpolation){
         te = tl;
-        return;
+        return true;
     }
 
     // interpolate
     interpolate(tl, tr, te);
-    return;
+
+    return true;
 }
 
 void TransformationBuffer::interpolate(const StampedTransformation &el, const StampedTransformation &er, StampedTransformation &res){
