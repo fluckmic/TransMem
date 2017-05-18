@@ -190,9 +190,9 @@ protected:
 
     bool shortestPath(Path &p);
 
-    bool calculateBestPointInTime(Path &p, Timestamp &tStampBestPointInTime, Link *ptr2EmptyLink);
+    bool calculateBestPointInTime(Path &p, Timestamp &tStampBestPointInTime);
 
-    bool calculateTransformation(const Path &p, StampedTransformation &e, Link *ptr2EmptyLink);
+    bool calculateTransformation(const Path &p, StampedTransformation &e);
 
     std::unordered_map<FrameID, Frame*> frameID2Frame;
 

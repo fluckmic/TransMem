@@ -17,6 +17,7 @@ class transmemTest : public QObject {
 
  private slots:
 
+    /*
     void throwsException_data();
     void throwsException();
 
@@ -25,6 +26,10 @@ class transmemTest : public QObject {
 
     void simpleNStepQueries_data();
     void simpleNStepQueries();
+    */
+
+    void bestPointInTime_data();
+    void bestPointInTime();
 
  public:
     enum ExceptionType {InvalidArgument, NoSuchLinkFound};
@@ -42,5 +47,21 @@ class transmemTest : public QObject {
 
 };
 
+struct updateSequence {
+    FrameID src;
+    FrameID dest;
+    std::vector<Timestamp> timeStamps;
+    std::vector<QMatrix4x4> transformations;
+};
+
+struct query {
+    FrameID src;
+    FrameID dest;
+    Timestamp tStamp;
+    QMatrix4x4 transfomation;
+};
+
+Q_DECLARE_METATYPE(query)
+Q_DECLARE_METATYPE(updateSequence)
 Q_DECLARE_METATYPE(transmemTest::ExceptionType)
 

@@ -15,16 +15,6 @@ const char* NoSuchLinkFoundException::what() const throw(){
 
 
 /****************************
- * EMPTYLINKQUERYEXCEPTION *
- ****************************/
-
-const char* EmptyLinkQueryException::what() const throw(){
-
-    return std::runtime_error::what();
-}
-
-
-/****************************
  * TRANSMEM                 *
  ****************************/
 
@@ -196,11 +186,7 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
 
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
-    Link *ptr2EmptyLink;
-    if(!calculateTransformation(p, t, ptr2EmptyLink)){
-        lock.unlock();
-        throw EmptyLinkQueryException(*ptr2EmptyLink);
-    }
+    calculateTransformation(p, t);
 
      // release the lock
     lock.unlock();
@@ -236,18 +222,11 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     }
 
     // evaluate best point in time
-    Link* ptr2EmptyLink;
-    if(!calculateBestPointInTime(p, tstamp, ptr2EmptyLink)){
-        lock.unlock();
-        throw EmptyLinkQueryException(*ptr2EmptyLink);
-    }
+    calculateBestPointInTime(p, tstamp);
 
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
-    if(!calculateTransformation(p, t, ptr2EmptyLink)){
-        lock.unlock();
-        throw EmptyLinkQueryException(*ptr2EmptyLink);
-    }
+    calculateTransformation(p, t);
 
      // release the lock
     lock.unlock();
@@ -261,7 +240,7 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
 
 }
 
- bool TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation, Link *ptr2EmptyLink){
+ bool TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation){
 
     // we asume the thread already holds the lock.
 
@@ -271,10 +250,7 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     // calculate transformation along the path
     for(Link* l : path.links){
         // get the transformation of the current link
-        if(!l->transformationAtTimeT(currentSrcFrameID, currentTrans)){
-            ptr2EmptyLink = l;
-            return false;
-        }
+        l->transformationAtTimeT(currentSrcFrameID, currentTrans);
 
        stampedTransformation.rotation = currentTrans.rotation * stampedTransformation.rotation;
        stampedTransformation.translation = currentTrans.rotation * stampedTransformation.translation * currentTrans.rotation.inverted();
@@ -289,26 +265,28 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
      return true;
  }
 
- bool TransMem::calculateBestPointInTime(Path &p, Timestamp &tStampBestPoinInTime, Link *ptr2EmptyLink){
+ bool TransMem::calculateBestPointInTime(Path &p, Timestamp &tStampBestPoinInTime){
 
-     // we search for the best transformation in the timespan between now and the time when
-     // the oldest entry was inserted of all the links in the path
-     tStampBestPoinInTime = std::chrono::high_resolution_clock::now();
-     Timestamp tStampOldest = tStampBestPoinInTime;
+     // we search for the best transformation in the timespan between the time when the
+     // newest entry was inserted and when the oldest entry was inserted of all the links in the path
 
+     Timestamp tStampOldest = std::chrono::time_point<std::chrono::high_resolution_clock>::max();
      StampedTransformation stampedTrans;
+
      for(Link* l : p.links){
-        if(!l->oldestTransformation(l->parent->frameID, stampedTrans)){
-            ptr2EmptyLink = l;
-            return false;
-        }
+
+        l->oldestTransformation(l->parent->frameID, stampedTrans);
         if(stampedTrans.time < tStampOldest)
             tStampOldest = stampedTrans.time;
+
+        l->newestTransformation(l->parent->frameID, stampedTrans);
+        if(stampedTrans.time > tStampBestPoinInTime)
+            tStampBestPoinInTime = stampedTrans.time;
      }
 
      std::chrono::milliseconds sum(0); std::chrono::milliseconds temp(0);
      std::chrono::milliseconds best; best = std::chrono::milliseconds::max();
-     for(Timestamp tStampCurr = tStampBestPoinInTime; tStampCurr < tStampOldest; tStampCurr = tStampCurr - std::chrono::milliseconds(100)){
+     for(Timestamp tStampCurr = tStampBestPoinInTime; tStampCurr > tStampOldest; tStampCurr = tStampCurr - std::chrono::milliseconds(10)){
 
          for(Link* l: p.links){
             l->distanceToNextClosestEntry(tStampCurr, temp);
