@@ -13,7 +13,8 @@ HEADERS += include/transmem.h \
     include/stampedTransformation.h \
     include/diijkstra.h \
     include/transformationBuffer.h \
-    test/include/matHelper.h
+    test/include/matHelper.h \
+    test/include/solution.h
 
 SOURCES += src/transmem.cpp \
     src/frameAndLink.cpp \
@@ -21,7 +22,8 @@ SOURCES += src/transmem.cpp \
     src/stampedTransformation.cpp \
     src/transformationBuffer.cpp \
     src/diijkstra.cpp \
-    test/src/matHelper.cpp
+    test/src/matHelper.cpp \
+    test/src/solution.cpp
 
 INCLUDEPATH += include
 

@@ -23,7 +23,7 @@ bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, m
     // to the oldest entry in the buffer
     if( tStamp < ((StampedTransformation)buffer.front()).time ){
 
-        distanceToCloserEntry = (duration_cast<milliseconds>(((StampedTransformation)buffer.back()).time.time_since_epoch()) - tStampMS);
+        distanceToCloserEntry = (duration_cast<milliseconds>(((StampedTransformation)buffer.front()).time.time_since_epoch()) - tStampMS);
         return true;
     }
 
@@ -31,7 +31,7 @@ bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, m
     auto iterF = find_if(buffer.begin(), buffer.end(), [&tStamp](const StampedTransformation &e){ return tStamp == e.time; });
     if( iterF != buffer.end() ){
 
-        distanceToCloserEntry = milliseconds::min();
+        distanceToCloserEntry = milliseconds(0);
         return true;
     }
 
@@ -138,7 +138,7 @@ bool TransformationBuffer::entryAt(StampedTransformation &te) {
         return false;
 
     // return the newest entry if queried for en even newer one
-    if(te.time >= ((StampedTransformation)buffer.back()).time){
+    if(((StampedTransformation)buffer.back()).time <= te.time){
         te = buffer.back();
         return true;
     }

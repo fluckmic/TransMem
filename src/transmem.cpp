@@ -247,6 +247,8 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     FrameID currentSrcFrameID = path.src;
     StampedTransformation currentTrans;
 
+    currentTrans.time = stampedTransformation.time;
+
     // calculate transformation along the path
     for(Link* l : path.links){
         // get the transformation of the current link
@@ -284,13 +286,15 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
             tStampBestPoinInTime = stampedTrans.time;
      }
 
-     std::chrono::milliseconds sum(0); std::chrono::milliseconds temp(0);
-     std::chrono::milliseconds best; best = std::chrono::milliseconds::max();
-     for(Timestamp tStampCurr = tStampBestPoinInTime; tStampCurr > tStampOldest; tStampCurr = tStampCurr - std::chrono::milliseconds(10)){
+     unsigned long best = std::numeric_limits<unsigned long>::max();
 
+     for(Timestamp tStampCurr = tStampBestPoinInTime; tStampCurr > tStampOldest; tStampCurr = tStampCurr - std::chrono::milliseconds(5)){
+
+         std::chrono::milliseconds temp(0);
+         unsigned long sum = 0;
          for(Link* l: p.links){
             l->distanceToNextClosestEntry(tStampCurr, temp);
-            sum += temp;
+            sum += temp.count() * temp.count();
          }
 
          if(sum < best){

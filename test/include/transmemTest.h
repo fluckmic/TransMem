@@ -2,6 +2,7 @@
 
 #include "transmem.h"
 #include "matHelper.h"
+#include "solution.h"
 #include <math.h>
 
 #include "ctime"
@@ -26,17 +27,21 @@ class transmemTest : public QObject {
 
     void simpleNStepQueries_data();
     void simpleNStepQueries();
-    */
 
     void bestPointInTime_data();
     void bestPointInTime();
+    */
+
+    void dynamicTest();
+    void dynamicTest_data();
+
 
  public:
     enum ExceptionType {InvalidArgument, NoSuchLinkFound};
 
  protected:
     bool compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth, const double eps);
-
+    std::string toLinkString(const FrameID &src, const FrameID &dst);
     const double precision = 1e-06;
 
     QMatrix4x4 createRandTMatrix();
@@ -64,4 +69,6 @@ struct query {
 Q_DECLARE_METATYPE(query)
 Q_DECLARE_METATYPE(updateSequence)
 Q_DECLARE_METATYPE(transmemTest::ExceptionType)
+
+
 

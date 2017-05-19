@@ -64,3 +64,25 @@ QMatrix4x4 MatHelper::getTransMatrix(double x, double y, double z) {
                          0, 0, 1, z,
                          0, 0, 0, 1 );
     }
+
+QMatrix4x4 MatHelper::simpleParam1(Timestamp t) {
+
+    std::chrono::milliseconds tMS = std::chrono::duration_cast<std::chrono::milliseconds>(t.time_since_epoch());
+    return getZRotMatrix(tMS.count() % 1000);
+}
+
+QMatrix4x4 MatHelper::simpleParam1Inv(Timestamp t) {
+
+    return simpleParam1(t).inverted();
+}
+
+QMatrix4x4 MatHelper::simpleParam2(Timestamp t) {
+
+    std::chrono::milliseconds tMS = std::chrono::duration_cast<std::chrono::milliseconds>(t.time_since_epoch());
+    return getYRotMatrix(tMS.count() % 500) * getTransMatrix(tMS.count() % 8, tMS.count() % 3, tMS.count() % 12);
+}
+
+QMatrix4x4 MatHelper::simpleParam2Inv(Timestamp t) {
+
+    return simpleParam2(t).inverted();
+}
