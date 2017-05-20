@@ -32,23 +32,19 @@ class transmemTest : public QObject {
     void bestPointInTime();
     */
 
-    void dynamicTest();
-    void dynamicTest_data();
-
+    void inversionTest();
+    void inversionTestAmbigousPath();
 
  public:
     enum ExceptionType {InvalidArgument, NoSuchLinkFound};
 
  protected:
-    bool compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth, const double eps);
-    std::string toLinkString(const FrameID &src, const FrameID &dst);
+
     const double precision = 1e-06;
 
-    QMatrix4x4 createRandTMatrix();
+    bool compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth);
 
-    QMatrix4x4 tRz(double a);
-    QMatrix4x4 tRx(double a);
-    QMatrix4x4 tTr(double x, double y, double z);
+    std::string toLinkString(const FrameID &src, const FrameID &dst);
 
 };
 

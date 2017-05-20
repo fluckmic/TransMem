@@ -355,111 +355,153 @@ void transmemTest::bestPointInTime(){
 
 */
 
-void transmemTest::dynamicTest_data(){
 
+void transmemTest::inversionTest(){
 
+    /*  After registering some links in the datastructure different queries
+        are made and the result is compared with the inverse query.         */
+
+    TransMem transMem; FrameID src, dst; QMatrix4x4 res, resInv;
+
+    Timestamp tStampQu, tStampA = std::chrono::high_resolution_clock::now();
+
+    //  Test 1
+    //  f1 - f2      1*****A*****2*3***B*****4
+
+     src = "f1"; dst = "f2";
+
+     Timestamp ts1 = tStampA - std::chrono::milliseconds(30);
+
+     //A
+     transMem.registerLink(src, dst, ts1 + std::chrono::milliseconds(30), MatHelper::getRandTransMatrix());
+     //B
+     transMem.registerLink(src, dst, ts1 + std::chrono::milliseconds(90), MatHelper::getRandTransMatrix());
+
+     std::vector<int> offset = {0, 60, 70, 120};
+
+     for(int o: offset){
+
+         tStampQu = ts1 + std::chrono::milliseconds(o);
+         res = transMem.getLink(src,dst, tStampQu);
+         resInv = transMem.getLink(dst, src, tStampQu);
+
+         QVERIFY(compareHelper(res.inverted(), resInv));
+     }
+     qInfo() << "PASS   : Test 1";
+
+     //  Test 2
+     //  f2 - f4     5*C*********6*******D***7
+
+     src = "f2"; dst = "f4";
+
+     Timestamp ts5 = tStampA + std::chrono::milliseconds(10);
+
+     //C
+     transMem.registerLink(src, dst, ts5 + std::chrono::milliseconds(10), MatHelper::getRandTransMatrix());
+     //D
+     transMem.registerLink(src, dst, ts5 + std::chrono::milliseconds(100), MatHelper::getRandTransMatrix());
+
+     offset = {0, 60, 120};    // 5,6,7
+     for(int o : offset){
+
+         tStampQu = ts5 + std::chrono::milliseconds(o);
+         res = transMem.getLink(src,dst, tStampQu);
+         resInv = transMem.getLink(dst, src, tStampQu);
+
+         QVERIFY(compareHelper(res.inverted(), resInv));
+
+     }
+     qInfo() << "PASS   : Test 2";
+
+     //  Test 3
+     //  f1 - f4     1*****A*****2*3***B*****4
+     //                      5*C*********6*******D***7
+     //                  8****9******1*****1*******1
+     //                              0     1       2
+     src = "f1"; dst = "f4";
+
+     Timestamp ts8 = tStampA - std::chrono::milliseconds(10);
+
+     offset = {0,15,50,80,120};     // 8,9,10,11,12
+     for(int o : offset){
+
+         tStampQu = ts8 + std::chrono::milliseconds(o);
+         res = transMem.getLink(src,dst, tStampQu);
+         resInv = transMem.getLink(dst, src, tStampQu);
+
+         QVERIFY(compareHelper(res.inverted(), resInv));
+
+     }
+     qInfo() << "PASS   : Test 3";
 }
 
+void transmemTest::inversionTestAmbigousPath(){
 
-void transmemTest::dynamicTest(){
+    typedef std::pair<FrameID, FrameID> linkPair;
 
-    TransMem transMem;
+    /* After the registration of some links most of the frames
+       are connected through multiple paths. Different queries are made
+       and compared with the inverse query to see if the datastructure
+       handles the ambiguouity due to multiple paths right.             */
 
-    std::vector< std::pair<FrameID, FrameID> > frameIDPairs({{"f1","f2"},{"f2","f4"}});
+    TransMem transMem; FrameID src, dst; QMatrix4x4 res, resInv;
 
-    std::unordered_map<std::string, std::vector<std::string> > path2Links;
-    path2Links.insert({
-                      {"f1-f4", std::vector<std::string>{"f1-f2", "f2-f4"}},
-                      {"f4-f1", std::vector<std::string>{"f4-f2", "f2-f1"}},
-                      {"f1-f2", std::vector<std::string>{"f1-f2"}},
-                      {"f2-f4", std::vector<std::string>{"f2-f4"}},
-                      {"f2-f1", std::vector<std::string>{"f2-f1"}},
-                      {"f4-f2", std::vector<std::string>{"f4-f2"}}
-                      });
+    Timestamp tStampQu, tStampZ = std::chrono::high_resolution_clock::now();
 
-    std::unordered_map<std::string, ptr2paramTransMat> link2paramTransMat;
+    // offset for updates
+    std::vector<int> offset = {
+        -1,30,70,85,110,135,
+        -1,10,45,100,140,
+        -1,20,75,120,
+        -1,5,25,50,65,100,135,
+        -1,10,20,40,60,85,110,130,
+        -1,5,30,75,105,135,
+        -1,10,35,90,120,
+        -1,15,60,80,110,140,
+        -1,25,40,70,85,130,
+    };
 
-    link2paramTransMat.insert({
-                              {"f1-f2", &MatHelper::simpleParam1},
-                              {"f2-f1", &MatHelper::simpleParam1Inv},
-                              {"f2-f4", &MatHelper::simpleParam2},
-                              {"f4-f2", &MatHelper::simpleParam2Inv}
-                              });
+    std::vector<linkPair> links = {
+        {"f1","f3"},{"f1","f2"},{"f3","f5"},{"f3","f4"},{"f2","f4"},
+        {"f2","f5"},{"f5","f6"},{"f4","f6"},{"f6","f7"}
+    };
 
-    Solution sol(frameIDPairs, link2paramTransMat, path2Links);
+    unsigned int linkIndx = 0;
+    for(int o : offset){
 
-    Timestamp tStamp = std::chrono::high_resolution_clock::now();
-    FrameID src, dst;
-    QMatrix4x4 tMat, res;
+        if(o < 0){
+            src = links.at(linkIndx).first;
+            dst = links.at(linkIndx).second;
+            linkIndx++;
+        }
+        else{
+            transMem.registerLink(src,dst,tStampZ + std::chrono::milliseconds(o), MatHelper::getRandTransMatrix());
+        }
+    }
 
-    src = "f1"; dst = "f2";
+    //  Test 3
+    //  f1 - f7
 
-    // test case
-    // **2**A**1**B**3**C**4**
-    // B
-    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
-    transMem.registerLink(src, dst, tStamp, tMat);
-    sol.updateSolution(src, dst, tStamp);
-    // C
-    tStamp = tStamp + std::chrono::milliseconds(100);
-    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
-    transMem.registerLink(src, dst, tStamp, tMat);
-    sol.updateSolution(src, dst, tStamp);
-    // A
-    tStamp = tStamp - std::chrono::milliseconds(200);
-    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
-    transMem.registerLink(src, dst, tStamp, tMat);
-    sol.updateSolution(src, dst, tStamp);
-    // 1
-    tStamp = tStamp + std::chrono::milliseconds(50);
-    res = transMem.getLink(src, dst, tStamp);
-    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
-    // 2
-    tStamp = tStamp - std::chrono::milliseconds(100);
-    res = transMem.getLink(src, dst, tStamp);
-    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
-    // 3
-    tStamp = tStamp + std::chrono::milliseconds(200);
-    res = transMem.getLink(src, dst, tStamp);
-    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
-    // 4
-    tStamp = tStamp + std::chrono::milliseconds(100);
-    res = transMem.getLink(src, dst, tStamp);
-    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+    src = "f1"; dst = "f7";
 
-    // test case
-    // **2**D**1**E**3
-    // D
-    src = "f4"; dst = "f2";
-    tStamp = tStamp + std::chrono::milliseconds(100);
-    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
-    transMem.registerLink(src, dst, tStamp, tMat);
-    sol.updateSolution(src, dst, tStamp);
-    // E
-    tStamp = tStamp + std::chrono::milliseconds(60);
-    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
-    transMem.registerLink(src, dst, tStamp, tMat);
-    sol.updateSolution(src, dst, tStamp);
-    // 3
-    tStamp = tStamp - std::chrono::milliseconds(10);
-    res = transMem.getLink(src, dst, tStamp);
-    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
-    // 2
-    tStamp = tStamp + std::chrono::milliseconds(20);
-    res = transMem.getLink(src, dst, tStamp);
-    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
-    // 1
-    tStamp = tStamp - std::chrono::milliseconds(30);
-    res = transMem.getLink(src, dst, tStamp);
-    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+    // offset for queries
+    offset = {0,15,55,72,115,142};
+    for(int o: offset){
 
+        tStampQu = tStampZ + std::chrono::milliseconds(o);
+        res = transMem.getLink(src,dst, tStampQu);
+        resInv = transMem.getLink(dst, src, tStampQu);
+
+        QVERIFY(compareHelper(res.inverted(), resInv));
+    }
+    qInfo() << "PASS   : Test 1";
 }
 
-bool transmemTest::compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth, double eps){
+bool transmemTest::compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth){
 
     for(unsigned int ii = 0; ii < 4; ii++)
         for(unsigned int jj = 0; jj < 4; jj++)
-            if(std::fabs(ref(ii,jj)-oth(ii,jj)) > eps)
+            if(std::fabs(ref(ii,jj)-oth(ii,jj)) > precision)
                 return false;
     return true;
 }

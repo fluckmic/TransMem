@@ -1,0 +1,91 @@
+void transmemTest::dynamicTest(){
+
+    TransMem transMem;
+
+    std::vector< std::pair<FrameID, FrameID> > frameIDPairs({{"f1","f2"},{"f2","f4"}});
+
+    std::unordered_map<std::string, std::vector<std::string> > path2Links;
+    path2Links.insert({
+                      {"f1-f4", std::vector<std::string>{"f1-f2", "f2-f4"}},
+                      {"f4-f1", std::vector<std::string>{"f4-f2", "f2-f1"}},
+                      {"f1-f2", std::vector<std::string>{"f1-f2"}},
+                      {"f2-f4", std::vector<std::string>{"f2-f4"}},
+                      {"f2-f1", std::vector<std::string>{"f2-f1"}},
+                      {"f4-f2", std::vector<std::string>{"f4-f2"}}
+                      });
+
+    std::unordered_map<std::string, ptr2paramTransMat> link2paramTransMat;
+
+    link2paramTransMat.insert({
+                              {"f1-f2", &MatHelper::simpleParam1},
+                              {"f2-f1", &MatHelper::simpleParam1Inv},
+                              {"f2-f4", &MatHelper::simpleParam2},
+                              {"f4-f2", &MatHelper::simpleParam2Inv}
+                              });
+
+    Solution sol(frameIDPairs, link2paramTransMat, path2Links);
+
+    Timestamp tStamp = std::chrono::high_resolution_clock::now();
+    FrameID src, dst;
+    QMatrix4x4 tMat, res;
+
+    src = "f1"; dst = "f2";
+
+    // test case
+    // **2**A**1**B**3**C**4**
+    // B
+    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
+    transMem.registerLink(src, dst, tStamp, tMat);
+    sol.updateSolution(src, dst, tStamp);
+    // C
+    tStamp = tStamp + std::chrono::milliseconds(100);
+    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
+    transMem.registerLink(src, dst, tStamp, tMat);
+    sol.updateSolution(src, dst, tStamp);
+    // A
+    tStamp = tStamp - std::chrono::milliseconds(200);
+    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
+    transMem.registerLink(src, dst, tStamp, tMat);
+    sol.updateSolution(src, dst, tStamp);
+    // 1
+    tStamp = tStamp + std::chrono::milliseconds(50);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+    // 2
+    tStamp = tStamp - std::chrono::milliseconds(100);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+    // 3
+    tStamp = tStamp + std::chrono::milliseconds(200);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+    // 4
+    tStamp = tStamp + std::chrono::milliseconds(100);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+
+    // test case
+    // **2**D**1**E**3
+    // D
+    src = "f4"; dst = "f2";
+    tStamp = tStamp + std::chrono::milliseconds(100);
+    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
+    transMem.registerLink(src, dst, tStamp, tMat);
+    sol.updateSolution(src, dst, tStamp);
+    // E
+    tStamp = tStamp + std::chrono::milliseconds(60);
+    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
+    transMem.registerLink(src, dst, tStamp, tMat);
+    sol.updateSolution(src, dst, tStamp);
+    // 3
+    tStamp = tStamp - std::chrono::milliseconds(10);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+    // 2
+    tStamp = tStamp + std::chrono::milliseconds(20);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+    // 1
+    tStamp = tStamp - std::chrono::milliseconds(30);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));

@@ -174,7 +174,7 @@ void TransformationBuffer::interpolate(const StampedTransformation &el, const St
 
     // NOTE: assertion just during development
     // ratio should not be outside this range
-    assert(ratio > 0 && ratio < 1);
+    assert(ratio > 0 && ratio <= 1);
 
     // spherical interpolation for the rotation
     res.rotation = QQuaternion::slerp(el.rotation, er.rotation, ratio);
