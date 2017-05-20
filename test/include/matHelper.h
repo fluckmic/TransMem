@@ -24,13 +24,6 @@ public:
 
    static QMatrix4x4 getRotMatrix(double angle, QVector3D axis);
 
-   static QMatrix4x4 simpleParam1(Timestamp t);
-   static QMatrix4x4 simpleParam1Inv(Timestamp t);
-
-   static QMatrix4x4 simpleParam2(Timestamp t);
-   static QMatrix4x4 simpleParam2Inv(Timestamp t);
-
-   static QMatrix4x4 simpleParam3(Timestamp t);
-   static QMatrix4x4 simpleParam3Inv(Timestamp t);
+   static bool matrixComparator(const QMatrix4x4 &ref, const QMatrix4x4 &oth);
 
 };

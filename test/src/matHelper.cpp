@@ -65,35 +65,12 @@ QMatrix4x4 MatHelper::getTransMatrix(double x, double y, double z) {
                          0, 0, 0, 1 );
     }
 
-QMatrix4x4 MatHelper::simpleParam1(Timestamp t) {
+ bool MatHelper::matrixComparator(const QMatrix4x4 &ref, const QMatrix4x4 &oth){
 
-    std::chrono::milliseconds tMS = std::chrono::duration_cast<std::chrono::milliseconds>(t.time_since_epoch());
-    return getZRotMatrix(tMS.count());
-}
+         for(unsigned int ii = 0; ii < 4; ii++)
+             for(unsigned int jj = 0; jj < 4; jj++)
+                 if(std::fabs(ref(ii,jj)-oth(ii,jj)) > 1e-05)
+                     return false;
+         return true;
+ }
 
-QMatrix4x4 MatHelper::simpleParam1Inv(Timestamp t) {
-
-    return simpleParam1(t).inverted();
-}
-
-QMatrix4x4 MatHelper::simpleParam2(Timestamp t) {
-
-    std::chrono::milliseconds tMS = std::chrono::duration_cast<std::chrono::milliseconds>(t.time_since_epoch());
-    return getYRotMatrix(tMS.count()) * getTransMatrix(tMS.count()/1203034534*1203, tMS.count() / 32345213234*1023, tMS.count() / 12342343242);
-}
-
-QMatrix4x4 MatHelper::simpleParam2Inv(Timestamp t) {
-
-    return simpleParam2(t).inverted();
-}
-
-QMatrix4x4 MatHelper::simpleParam3(Timestamp t) {
-
-    std::chrono::milliseconds tMS = std::chrono::duration_cast<std::chrono::milliseconds>(t.time_since_epoch());
-    return  getTransMatrix(tMS.count() % 3, tMS.count() % 5, tMS.count() % 7);
-}
-
-QMatrix4x4 MatHelper::simpleParam3Inv(Timestamp t) {
-
-    return simpleParam3(t).inverted();
-}

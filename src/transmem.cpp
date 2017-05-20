@@ -184,6 +184,8 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
         throw NoSuchLinkFoundException(srcFrame, destFrame);
     }
 
+    this->dumpPathAsJSON(p);
+
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
     calculateTransformation(p, t);

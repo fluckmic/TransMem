@@ -1,257 +1,142 @@
 #include "test/include/transmemTest.h"
 
-/*
-void transmemTest::throwsException_data() {
+ typedef std::pair<FrameID, FrameID> linkPair;
+ typedef std::pair< linkPair , QMatrix4x4 > linkTransPair;
 
-    // initialize
-    QTest::addColumn<FrameID>("srcFrame");
-    QTest::addColumn<FrameID>("destFrame");
-    QTest::addColumn<PrequelSequence>("prequelSequence");
-    QTest::addColumn<ExceptionType>("exceptionType");
+void transmemTest::throwsExceptionTest() {
 
-    // test set 1
-    QTest::newRow("throws exception test 1 - empty transmem, first query between identical frames")
-        << (FrameID)"f1"
-        << (FrameID)"f1"
-        << PrequelSequence()
-        << InvalidArgument;
+    // Simple instruction which all should cause an exception.
 
-    // test set 2
-    QTest::newRow("throws exception test 2 - empty transmem, query between two frames")
-        << (FrameID)"f1"
-        << (FrameID)"f2"
-        << PrequelSequence()
-        << NoSuchLinkFound;
+    TransMem transMem; FrameID src, dst;
+    Timestamp tStamp = std::chrono::high_resolution_clock::now();
 
-    // test set 3
-    QTest::newRow("throws exception test 3 - simple network, query for transformation between frames which are not connected")
-        << (FrameID)"f1"
-        << (FrameID)"F3"
-        << PrequelSequence{{"F2","f3"},{"f1","f2"},{"F1","F3"}}
-        << NoSuchLinkFound;
+    // Test 1
+    // empty transmem, all queries cause an exception
+    src = "f2"; dst = "f3";
+    QVERIFY_EXCEPTION_THROWN(transMem.getLink(src, dst, tStamp), NoSuchLinkFoundException);
+    qInfo() << "PASS   : Test 1";
 
-    // test set 4
-    QTest::newRow("throws exception test 4 - more complicated network, query for transformation between two frames which are not connected")
-         << (FrameID)"f4"
-         << (FrameID)"f7"
-         << PrequelSequence{{"f5","f6"},{"f4","f5"},{"f4","f6"},{"f6","f1"},{"f6","f8"},{"f10","f11"},{"f10","f9"},
-                            {"f9","f7"},{"f7","f11"},{"f2","f1"},{"f2","f3"},{"f3","f6"}}
-         << NoSuchLinkFound;
-}
+    // Test 2
+    // emptry transmem, query between two identical frames
+    src = "fa"; dst = "fa";
+    QVERIFY_EXCEPTION_THROWN(transMem.getLink(src, dst, tStamp), std::invalid_argument);
+    qInfo() << "PASS   : Test 2";
 
-void transmemTest::throwsException() {
-
-    // fetch test data
-    QFETCH(FrameID,srcFrame);
-    QFETCH(FrameID, destFrame);
-    QFETCH(PrequelSequence, prequelSequence);
-    QFETCH(ExceptionType, exceptionType);
-
-    // create dummy timestamp and transformation matrix
-    QMatrix4x4 m; Timestamp tStamp = std::chrono::high_resolution_clock::now();
-
-    // create transmem object
-    TransMem t;
-
-    // run prequel
-    for(std::pair<FrameID,FrameID> p : prequelSequence)
-        t.registerLink((FrameID)p.first, (FrameID)p.second, tStamp, m);
-
-    switch(exceptionType){
-        case InvalidArgument: QVERIFY_EXCEPTION_THROWN(t.getLink(srcFrame, destFrame, tStamp), std::invalid_argument);
-                              break;
-        case NoSuchLinkFound:
-                              QVERIFY_EXCEPTION_THROWN(t.getLink(srcFrame, destFrame, tStamp), NoSuchLinkFoundException);
-                              break;
+    // Test 3
+    // transmem containing some links, query between two frames which are not connected
+    src = "f4"; dst = "f7";
+    std::vector<linkPair> links = {
+        {"f5","f6"},{"f4","f5"},{"f4","f6"},{"f6","f1"},{"f6","f8"},{"f3","f6"},
+        {"f10","f11"},{"f10","f9"},{"f9","f7"},{"f7","f11"},{"f2","f1"},{"f2","f13"},
     };
-
+    for(linkPair l : links)
+        transMem.registerLink(l.first, l.second, tStamp, MatHelper::getRandTransMatrix());
+    QVERIFY_EXCEPTION_THROWN(transMem.getLink(src, dst, tStamp), NoSuchLinkFoundException);
+    qInfo() << "PASS   : Test 3";
 }
 
-void transmemTest::simpleQueries_data(){
+void transmemTest::simpleQueriesTest(){
 
-    // initialize
-    QTest::addColumn<QMatrix4x4>("transformation");
+    /* Simple queries against the datastructure which stores just
+       one transformation entry on one single link.
 
-    // test set 1
-    QTest::newRow("simple queries test 1 - just a rotation")
-        << MatHelper::getYRotMatrix(M_PI/4);
+       Test if this simple mechanisms works correct.           */
 
-    // test set 2
-    QTest::newRow("simple queries test 2 - just a translation")
-        << MatHelper::getTransMatrix(-1.,0,3.4);
+    TransMem transMem;
 
-    // test set 3
-    QTest::newRow("simple queries test 3 - two rotations")
-        << MatHelper::getZRotMatrix(9*M_PI/16) * MatHelper::getXRotMatrix(M_PI/3);
-
-    // test set 4
-    QTest::newRow("simple queries test 4 - two translations")
-        << MatHelper::getTransMatrix(4.4,-2.5,0.) * MatHelper::getTransMatrix(-1.,0,3.4);
-
-    // test set 5
-    QTest::newRow("simple queries test 5 - combination of a translation followed by two rotation")
-       << MatHelper::getZRotMatrix(M_PI/4) * MatHelper::getYRotMatrix(M_PI/18) * MatHelper::getTransMatrix(-1.,0,3.4);
-
-    // test set 6
-    QTest::newRow(("simple queries test 6 - combination of some rotation and translation matrices"))
-        << MatHelper::getXRotMatrix(M_PI) * MatHelper::getYRotMatrix(123*M_PI/239) * MatHelper::getTransMatrix(-1.,0,0)
-                                          * MatHelper::getYRotMatrix(56*M_PI/57) * MatHelper::getTransMatrix(-1,-1,-1);
-    // test set 7
-    QTest::newRow(("simple queries test 7 - random matrices"))
-        << MatHelper::getRandTransMatrix() * MatHelper::getRandTransMatrix();
-}
-
-void transmemTest::simpleQueries(){
-
-    // fetch test data
-    QFETCH(QMatrix4x4, transformation);
-
-    // create transmem object
-    TransMem t;
-
-    // timestamp & duration
     Timestamp tStamp = std::chrono::high_resolution_clock::now();
     std::chrono::milliseconds dt = std::chrono::milliseconds(100);
 
-    t.registerLink("f1", "f2", tStamp, transformation);
+    FrameID src; FrameID dst;
+    src = "f1"; dst = "f2";
 
+    //          f1 --------> f2
+
+    QMatrix4x4 ret, insrt = MatHelper::getRandTransMatrix();
+    transMem.registerLink(src, dst, tStamp, insrt);
+
+    // Test 1
     // get same transformation back if queried at the exact time in the same direction
-    QMatrix4x4 ret = t.getLink("f1", "f2", tStamp);
-    QVERIFY(compareHelper(transformation, ret, precision));
+    ret = transMem.getLink(src, dst, tStamp);
+    QVERIFY(MatHelper::matrixComparator(insrt, ret));
+    qInfo() << "PASS   : Test 1";
 
+    // Test 2
     // get the inverse transformation back if queried at the exact time in the opposite direction
-    ret = t.getLink("f2", "f1", tStamp);
-    QVERIFY(compareHelper(transformation.inverted(), ret, precision));
+    ret = transMem.getLink(dst, src, tStamp);
+    QVERIFY(MatHelper::matrixComparator(insrt.inverted(), ret));
+    qInfo() << "PASS   : Test 2";
 
-    // get the same transformation back if queried a little later in the same direction (just one entry)
-    ret = t.getLink("f1", "f2", tStamp + dt);
-    QVERIFY(compareHelper(transformation, ret, precision));
+    // Test 3
+    // get the same transformation back if queried a little later
+    ret = transMem.getLink(src, dst, tStamp + dt);
+    QVERIFY(MatHelper::matrixComparator(insrt, ret));
+    qInfo() << "PASS   : Test 3";
 
-    // get the same transformation back if queried a little later in the opposite direction (just one entry)
-    ret = t.getLink("f2", "f1", tStamp + dt);
-    QVERIFY(compareHelper(transformation.inverted(), ret, precision));
-
-    // get the same transformation back if queried a little earlier in the same direction (just one entry)
-    ret = t.getLink("f1", "f2", tStamp - dt);
-    QVERIFY(compareHelper(transformation, ret, precision));
-
-    // get the same transformation back if queried a little earlier in the opposite direction (just one entry)
-    ret = t.getLink("f2", "f1", tStamp - dt);
-    QVERIFY(compareHelper(transformation.inverted(), ret, precision));
-
+    // Test 4
+    // get the inverse transformation back if queried a little earlier in the opposite directin
+    ret = transMem.getLink(dst, src, tStamp - dt);
+    QVERIFY(MatHelper::matrixComparator(insrt.inverted(), ret));
+    qInfo() << "PASS   : Test 4";
 
 }
 
-void transmemTest::simpleNStepQueries_data(){
+void transmemTest::simpleMultiStepQueriesTest(){
 
-    // initialize
-    QTest::addColumn<FrameID>("srcFrame");
-    QTest::addColumn<FrameID>("destFrame");
-    QTest::addColumn<PrequelSequenceWithT>("prequelSequence");
-    QTest::addColumn<QMatrix4x4>("refTransformation");
+    /* Queries against the datastructure which stores only one
+       transformation on a link.
 
-    // test set 1
-    QMatrix4x4 tM21 = MatHelper::getXRotMatrix(13*M_PI/89);
-    QMatrix4x4 tM23 = MatHelper::getYRotMatrix(M_PI/12);
-    QMatrix4x4 tM43 = MatHelper::getZRotMatrix(27*M_PI/4);
+       We test if calculation along a multistep path works correct. */
 
-    QTest::newRow("simple n step queries test 1 - just a small graph with 3 frame nodes only rotation")
-        << (FrameID) "f4"
-        << (FrameID) "f1"
-        << PrequelSequenceWithT{{{"f2","f3"},{tM23}},{{"f2","f1"},{tM21}},{{"f4","f3"},{tM43}}}
-        << tM21*tM23.inverted()*tM43;
+    Timestamp tStamp = std::chrono::high_resolution_clock::now();
+    TransMem transMem;
 
-    // test set 2
-    tM21 = MatHelper::getTransMatrix(0.2,1.4,-0.22);
-    tM23 = MatHelper::getTransMatrix(-0.9, 0.221, -0.707);
-    tM43 = MatHelper::getTransMatrix(1.01, 4, 0.49);
-
-    QTest::newRow("simple n step queries test 2 - just a small graph with 3 frame nodes and only translation ")
-        << (FrameID) "f4"
-        << (FrameID) "f1"
-        << PrequelSequenceWithT{{{"f2","f3"},{tM23}},{{"f2","f1"},{tM21}},{{"f4","f3"},{tM43}}}
-        << tM21*tM23.inverted()*tM43;
-
-    // test set 3
-    tM21 = MatHelper::getTransMatrix(3.2,-1.41,-1.22);
-    tM23 = MatHelper::getYRotMatrix(11*M_PI/12);
-    tM43 = MatHelper::getTransMatrix(-3.41, 0.1, 1);
-
-    QTest::newRow("simple n step queries test 3 - just a small graph with 3 frame nodes, translation and rotation ")
-        << (FrameID) "f4"
-        << (FrameID) "f1"
-        << PrequelSequenceWithT{{{"f2","f3"},{tM23}},{{"f2","f1"},{tM21}},{{"f4","f3"},{tM43}}}
-        << tM21*tM23.inverted()*tM43;
-
-    // prepare larger graph and prequel for further tests..
-    std::unordered_map<unsigned int, QMatrix4x4> trans;
-    for(unsigned int i = 1; i < 20; i++)
-        trans.insert({i, MatHelper::getRandTransMatrix()});
-
-    PrequelSequenceWithT prequel = PrequelSequenceWithT{
-
-        {{"f1","f2"},{trans.at(1)}},{{"f1","f3"},{trans.at(2)}},{{"f3","f4"},{trans.at(4)}},
-        {{"f4","f5"},{trans.at(5)}},{{"f5","f6"},{trans.at(6)}},{{"f5","f3"},{trans.at(3)}},
-        {{"f5","f7"},{trans.at(7)}},{{"f7","f17"},{trans.at(17)}},{{"f17","f8"},{trans.at(8)}},
-        {{"f17","f13"},{trans.at(13)}},{{"f12","f17"},{trans.at(12)}},{{"f11","f12"},{trans.at(11)}},
-        {{"f10","f11"},{trans.at(10)}},{{"f10","f15"},{trans.at(16)}},{{"f11","f9"},{trans.at(9)}},
-        {{"f16","f9"},{trans.at(18)}},{{"f15","f16"},{trans.at(19)}},{{"f15","f14"},{trans.at(14)}},
-        {{"f15","f1"},{trans.at(15)}}
-
+    // create a container save the transformation stored on each link
+    QMatrix4x4 d;
+    std::vector<linkTransPair> links = {
+        /*0*/ {{"f1","f3"},d},  /*1*/ {{"f2","f1"},d},   /*2*/ {{"f2","f6"},d},  /*3*/ {{"f2","f4"},d},  /*4*/ {{"f3","f5"},d},
+        /*5*/ {{"f20","f3"},d}, /*6*/ {{"f5","f6"},d},   /*7*/ {{"f5","f8"},d},  /*8*/ {{"f7","f5"},d},  /*9*/ {{"f8","f12"},d},
+        /*10*/{{"f14","f8"},d}, /*11*/{{"f14","f15"},d}, /*12*/{{"f13","f14"},d},/*13*/{{"f12","f13"},d},/*14*/{{"f11","f12"},d},
+        /*15*/{{"f20","f10"},d},/*16*/{{"f20","f9"},d},  /*17*/{{"f23","f20"},d},/*18*/{{"f23","f19"},d},/*19*/{{"f21","f9"},d},
+        /*20*/ {{"f10","f4"},d},/*21*/{{"f5","f10"},d},  /*22*/{{"f22","f10"},d},/*23*/{{"f22","f17"},d},/*24*/{{"f17", "f18"},d},
+        /*25*/{{"f17","f21"},d}
     };
 
-    // test set 4
-    QTest::newRow("simple n step queries test 4 - larger graph with random transformation matrices ")
-        << (FrameID) "f1"
-        << (FrameID) "f17"
-        <<  prequel
-        << trans.at(17)*trans.at(7)*trans.at(3).inverted()*trans.at(2);
+    for(unsigned int indx = 0; indx < links.size(); indx++)
+        links.at(indx).second = MatHelper::getRandTransMatrix();
 
-    // test set 5
-    QTest::newRow("simple n step queries test 5 - larger graph with random transformation matrices ")
-        << (FrameID) "f11"
-        << (FrameID) "f6"
-        <<  prequel
-        << trans.at(6)*trans.at(7).inverted()*trans.at(17).inverted()*trans.at(12)*trans.at(12);
+    for(linkTransPair lp : links)
+        transMem.registerLink(lp.first.first, lp.first.second, tStamp, lp.second);
 
-    // test set 6
-    QTest::newRow("simple n step queries test 6 - larger graph with random transformation matrices ")
-        << (FrameID) "f5"
-        << (FrameID) "f9"
-        <<  prequel
-        << trans.at(9)*(trans.at(11).inverted()*(trans.at(12).inverted()*(trans.at(17)*trans.at(7))));
+    FrameID src, dst; QMatrix4x4 res, sol1, sol2;
 
+    // Test 1
+    // "f6" - "f23"
+    src = "f6"; dst = "f23";
+
+    sol1 = links.at(17).second.inverted()*links.at(5).second.inverted()*
+           links.at(4).second.inverted()*links.at(6).second.inverted();
+    sol2 = links.at(17).second.inverted()*links.at(15).second.inverted()*
+           links.at(21).second*links.at(6).second.inverted();
+
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(MatHelper::matrixComparator(sol1,res) || MatHelper::matrixComparator(sol2,res));
+    qInfo() << "PASS   : Test 1";
+
+    // Test 2
+    // "f17" - "f15"
+    src = "f17"; dst = "f15";
+
+    sol1 = links.at(23).second*links.at(22).second.inverted()*
+           links.at(21).second*links.at(7).second.inverted()*
+           links.at(10).second*links.at(11).second.inverted();
+
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(MatHelper::matrixComparator(sol1,res));
+    qInfo() << "PASS   : Test 2";
 }
 
-void transmemTest::simpleNStepQueries(){
-
-    // fetch test data
-    QFETCH(FrameID,srcFrame);
-    QFETCH(FrameID, destFrame);
-    QFETCH(PrequelSequenceWithT, prequelSequence);
-    QFETCH(QMatrix4x4, refTransformation);
-
-    // create dummy timestamp
-    Timestamp tStamp = std::chrono::high_resolution_clock::now();
-
-    // create transmem object
-    TransMem t;
-
-    // run prequel
-    for(std::pair < std::pair < FrameID, FrameID > , QMatrix4x4> p : prequelSequence){
-        std::pair<FrameID, FrameID> fP = p.first;
-        t.registerLink((FrameID)fP.first, (FrameID)fP.second, tStamp, (QMatrix4x4) p.second);
-    }
-
-    QMatrix4x4 ret = t.getLink(srcFrame,destFrame,tStamp);
-    QVERIFY(compareHelper(refTransformation, ret, precision));
-
-    t.dumpAsGraphML();
-    t.dumpAsJSON();
-
-}
-
-
+/*
 void transmemTest::bestPointInTime_data(){
 
     // initialize
@@ -356,7 +241,7 @@ void transmemTest::bestPointInTime(){
 */
 
 
-void transmemTest::inversionTest(){
+void transmemTest::inversionTestSimple(){
 
     /*  After registering some links in the datastructure different queries
         are made and the result is compared with the inverse query.         */
@@ -369,7 +254,6 @@ void transmemTest::inversionTest(){
     //  f1 - f2      1*****A*****2*3***B*****4
 
      src = "f1"; dst = "f2";
-
      Timestamp ts1 = tStampA - std::chrono::milliseconds(30);
 
      //A
@@ -385,7 +269,7 @@ void transmemTest::inversionTest(){
          res = transMem.getLink(src,dst, tStampQu);
          resInv = transMem.getLink(dst, src, tStampQu);
 
-         QVERIFY(compareHelper(res.inverted(), resInv));
+         QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
      }
      qInfo() << "PASS   : Test 1";
 
@@ -393,7 +277,6 @@ void transmemTest::inversionTest(){
      //  f2 - f4     5*C*********6*******D***7
 
      src = "f2"; dst = "f4";
-
      Timestamp ts5 = tStampA + std::chrono::milliseconds(10);
 
      //C
@@ -408,7 +291,7 @@ void transmemTest::inversionTest(){
          res = transMem.getLink(src,dst, tStampQu);
          resInv = transMem.getLink(dst, src, tStampQu);
 
-         QVERIFY(compareHelper(res.inverted(), resInv));
+         QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
 
      }
      qInfo() << "PASS   : Test 2";
@@ -418,8 +301,8 @@ void transmemTest::inversionTest(){
      //                      5*C*********6*******D***7
      //                  8****9******1*****1*******1
      //                              0     1       2
-     src = "f1"; dst = "f4";
 
+     src = "f1"; dst = "f4";
      Timestamp ts8 = tStampA - std::chrono::milliseconds(10);
 
      offset = {0,15,50,80,120};     // 8,9,10,11,12
@@ -429,15 +312,13 @@ void transmemTest::inversionTest(){
          res = transMem.getLink(src,dst, tStampQu);
          resInv = transMem.getLink(dst, src, tStampQu);
 
-         QVERIFY(compareHelper(res.inverted(), resInv));
+         QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
 
      }
      qInfo() << "PASS   : Test 3";
 }
 
-void transmemTest::inversionTestAmbigousPath(){
-
-    typedef std::pair<FrameID, FrameID> linkPair;
+void transmemTest::inversionTestwithAmbigousPath(){
 
     /* After the registration of some links most of the frames
        are connected through multiple paths. Different queries are made
@@ -479,7 +360,7 @@ void transmemTest::inversionTestAmbigousPath(){
         }
     }
 
-    //  Test 3
+    //  Test 1
     //  f1 - f7
 
     src = "f1"; dst = "f7";
@@ -492,22 +373,10 @@ void transmemTest::inversionTestAmbigousPath(){
         res = transMem.getLink(src,dst, tStampQu);
         resInv = transMem.getLink(dst, src, tStampQu);
 
-        QVERIFY(compareHelper(res.inverted(), resInv));
+        QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
     }
     qInfo() << "PASS   : Test 1";
 }
 
-bool transmemTest::compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth){
-
-    for(unsigned int ii = 0; ii < 4; ii++)
-        for(unsigned int jj = 0; jj < 4; jj++)
-            if(std::fabs(ref(ii,jj)-oth(ii,jj)) > precision)
-                return false;
-    return true;
-}
-
-std::string transmemTest::toLinkString(const FrameID &src, const FrameID &dst){
-    return (src + "-" + dst);
-}
 
 QTEST_MAIN(transmemTest)
