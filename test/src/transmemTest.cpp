@@ -239,7 +239,46 @@ void transmemTest::bestPointInTime(){
 }
 
 */
+void transmemTest::pruningTest(){
 
+    /* A sequence of updates and queries on a single
+       link to test the internal pruning.   */
+
+    Timestamp tStampZ = std::chrono::high_resolution_clock::now(),
+              tStampQ = tStampZ - std::chrono::seconds(2);
+
+     QMatrix4x4 res, sol;
+
+    TransMem transMem; FrameID src = "f1", dst = "f2";
+
+    typedef std::pair < int, QMatrix4x4 > offsetTransPair;
+
+    QMatrix4x4 d;
+    std::vector<offsetTransPair> offsetTransPairs = {
+         /*0*/{0,d},  /*1*/{4,d},  /*2*/{6,d},  /*3*/{8,d},  /*4*/{10,d}, /*5*/{12,d}, /*6*/{14,d},
+         /*7*/{16,d}, /*8*/{18,d}, /*9*/{22,d},/*10*/{25,d},/*11*/{28,d},/*12*/{30,d},/*13*/{33,d},
+        /*14*/{36,d},/*15*/{39,d},/*16*/{42,d},/*17*/{44,d},/*18*/{46,d},/*18*/{48,d},/*19*/{50,d},
+        /*20*/{53,d}
+    };
+
+    std::vector<unsigned int> queryTime = {3,5,7,9,12,13,18,22};
+    std::vector<unsigned int> solutionNr = {0,0,1,3,8,9,14,17};
+
+    unsigned int innerIndx = 0;
+    for(unsigned int outerIndx = 0; outerIndx < queryTime.size(); outerIndx++){
+        unsigned int nextQuery = queryTime.at(outerIndx);
+
+        for(; innerIndx < nextQuery; innerIndx++)
+            transMem.registerLink(src, dst, tStampZ + std::chrono::seconds(offsetTransPairs.at(innerIndx).first),
+                                  offsetTransPairs.at(innerIndx).second);
+
+        sol = offsetTransPairs.at(solutionNr.at(outerIndx)).second;
+        res = transMem.getLink(src, dst, tStampQ);
+        QVERIFY(MatHelper::matrixComparator(sol,res));
+        qInfo() << "PASS   : Test " + QString::number(outerIndx + 1);
+    }
+
+}
 
 void transmemTest::inversionTestSimple(){
 
