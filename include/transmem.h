@@ -172,7 +172,7 @@ public:
      * Let L1,..,Ln be the links required for the transformation from @a srcFrame to @a destFrame.@n
      * Let Eij be the j-th transformaton entry inserted at time tij in the link Li.@n
      * The best transformation is the transformation obtained at time t, were t minimizes the sum over all |t-tij| from 1 to n.@n@n
-     * The resolution of t is 100 ms.
+     * The resolution of t is 10 ms.
      * @param srcFrame identifier of the source frame
      * @param destFrame identifier of the destination frame
      * @param tstamp returns at what time the best transformation was available

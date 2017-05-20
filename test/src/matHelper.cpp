@@ -65,7 +65,7 @@ QMatrix4x4 MatHelper::getTransMatrix(double x, double y, double z) {
                          0, 0, 0, 1 );
     }
 
- bool MatHelper::matrixComparator(const QMatrix4x4 &ref, const QMatrix4x4 &oth){
+bool MatHelper::matrixComparator(const QMatrix4x4 &ref, const QMatrix4x4 &oth){
 
          for(unsigned int ii = 0; ii < 4; ii++)
              for(unsigned int jj = 0; jj < 4; jj++)

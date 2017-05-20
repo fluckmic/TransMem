@@ -20,6 +20,7 @@ std::string StampedTransformation::timeAsString() const {
     milliseconds ms = duration_cast<milliseconds>(time.time_since_epoch());
     time_t yet = system_clock::to_time_t(time);
 
+    // not perfect but good enough for debugging..
     ostringstream oss;
     oss << put_time(localtime(&yet), "%T") << ":" << std::to_string(ms.count() % 1000);
 

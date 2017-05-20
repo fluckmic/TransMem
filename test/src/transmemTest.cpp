@@ -40,7 +40,7 @@ void transmemTest::simpleQueriesTest(){
     /* Simple queries against the datastructure which stores just
        one transformation entry on one single link.
 
-       Test if this simple mechanisms works correct.           */
+       Test if this simple mechanisms works correct. */
 
     TransMem transMem;
 
@@ -136,113 +136,80 @@ void transmemTest::simpleMultiStepQueriesTest(){
     qInfo() << "PASS   : Test 2";
 }
 
-/*
-void transmemTest::bestPointInTime_data(){
+void transmemTest::bestPointInTimeTest(){
 
-    // initialize
-    QTest::addColumn<std::vector<updateSequence> >("upSeq");
-    QTest::addColumn<query>("quer");
+    /* Test whether the Timestamp returned from getBestLink(..) is correct. */
 
-    Timestamp tStampNow = std::chrono::high_resolution_clock::now();
+    TransMem transMem1, transMem2; FrameID src, dst; QMatrix4x4 res, resInv;
+    std::vector<TransMem*> transMems = {&transMem1, &transMem2};
 
-    // create data for first test
-    // create update seq 1
-    std::vector<Timestamp> ts1 = std::vector<Timestamp> {
-            tStampNow + std::chrono::milliseconds(35),
-            tStampNow + std::chrono::milliseconds(75),
-            tStampNow + std::chrono::milliseconds(105),
-            tStampNow + std::chrono::milliseconds(140),
+    Timestamp tStampZ = std::chrono::high_resolution_clock::now();
+
+    // offset for updates
+    std::vector <std::vector<int> > offsets = {
+        { -1,35,75,105,140,
+          -1,10,30,50,65,75,95,105,125,140,160},
+        { -1,0,10,20,35,40,50,
+          -1,85,95,100,110,120,130,140,145},
     };
 
-    updateSequence us1 = updateSequence { (FrameID)"f1", (FrameID)"f2", ts1, std::vector<QMatrix4x4>() };
+    std::vector<linkPair> links = {{"f1","f2"},{"f3","f2"}};
 
-    // create update seq 2
-    std::vector<Timestamp> ts2 = std::vector<Timestamp> {
-            tStampNow + std::chrono::milliseconds(10), tStampNow + std::chrono::milliseconds(30),
-            tStampNow + std::chrono::milliseconds(50), tStampNow + std::chrono::milliseconds(65),
-            tStampNow + std::chrono::milliseconds(75), tStampNow + std::chrono::milliseconds(95),
-            tStampNow + std::chrono::milliseconds(105), tStampNow + std::chrono::milliseconds(125),
-            tStampNow + std::chrono::milliseconds(140), tStampNow + std::chrono::milliseconds(160)
-    };
+    unsigned int transMemIndx = 0;
+    for(std::vector<int> offset : offsets){
+        unsigned int linkIndx = 0;
+        for(int o : offset){
 
-    updateSequence us2 = updateSequence { (FrameID)"f3", (FrameID)"f2", ts2, std::vector<QMatrix4x4>() };
-
-    // create vector of update sequences
-    std::vector< updateSequence > uss = std::vector<updateSequence>{us1, us2};
-
-    // create query
-    query q = query{ (FrameID)"f1", (FrameID)"f3", tStampNow + std::chrono::milliseconds(140), QMatrix4x4()};
-
-    // test set 1
-    QTest::newRow("best point in time test 1")
-        << uss
-        << q;
-
-    // create data for the second test
-    tStampNow = std::chrono::high_resolution_clock::now();
-
-    // create data for second test
-    // create update seq 1
-     ts1 = std::vector<Timestamp> {
-            tStampNow + std::chrono::milliseconds(0),   tStampNow + std::chrono::milliseconds(10),
-            tStampNow + std::chrono::milliseconds(20),  tStampNow + std::chrono::milliseconds(35),
-            tStampNow + std::chrono::milliseconds(40),  tStampNow + std::chrono::milliseconds(50)
-    };
-
-    us1 = updateSequence { (FrameID)"f1", (FrameID)"f2", ts1, std::vector<QMatrix4x4>() };
-
-    ts2 = std::vector<Timestamp> {
-            tStampNow + std::chrono::milliseconds(85), tStampNow + std::chrono::milliseconds(95),
-            tStampNow + std::chrono::milliseconds(100), tStampNow + std::chrono::milliseconds(110),
-            tStampNow + std::chrono::milliseconds(120), tStampNow + std::chrono::milliseconds(130),
-            tStampNow + std::chrono::milliseconds(140), tStampNow + std::chrono::milliseconds(145)
-    };
-
-    us2 = updateSequence { (FrameID)"f3", (FrameID)"f2", ts2, std::vector<QMatrix4x4>() };
-
-    // create vector of update sequences
-    uss = std::vector<updateSequence>{us1, us2};
-
-    // create query
-    q = query{ (FrameID)"f1", (FrameID)"f3", tStampNow + std::chrono::milliseconds(67), QMatrix4x4()};
-
-    // test set 2
-    QTest::newRow("best point in time test 2")
-        << uss
-        << q;
-
-}
-
-void transmemTest::bestPointInTime(){
-
-    // fetch test data
-    QFETCH(std::vector<updateSequence>,upSeq);
-    QFETCH(query, quer);
-
-    // create transmem object
-    TransMem t;
-
-    // run prequel
-    for(updateSequence us : upSeq){
-        for(unsigned int i = 0; i < us.timeStamps.size(); i++)
-            t.registerLink(us.src, us.dest, us.timeStamps.at(i), QMatrix4x4());
+            if(o < 0){
+                src = links.at(linkIndx).first;
+                dst = links.at(linkIndx).second;
+                linkIndx++;
+            }
+            else{
+                transMems.at(transMemIndx)->registerLink(src,dst,tStampZ + std::chrono::milliseconds(o), MatHelper::getRandTransMatrix());
+            }
+        }
+        transMemIndx++;
     }
 
-    std::chrono::milliseconds tStampRefSolMS = std::chrono::duration_cast<std::chrono::milliseconds>(quer.tStamp.time_since_epoch());
-    quer.transfomation = t.getBestLink(quer.src, quer.dest, quer.tStamp);
-    std::chrono::milliseconds tStampRetMS = std::chrono::duration_cast<std::chrono::milliseconds>(quer.tStamp.time_since_epoch());
+    // Test 1
+    // get time when the "best" transformation betwen f1 and f3 is available for transMem1
+    src = "f1"; dst = "f3";
 
-    t.dumpAsJSON();
+    Timestamp bestTimestamp;
+    transMems.at(0)->getBestLink(src, dst, bestTimestamp);
+    Timestamp solBestTimestamp = tStampZ +  std::chrono::milliseconds(140);
 
-    QVERIFY( (tStampRefSolMS - std::chrono::milliseconds(5)).count() < tStampRetMS.count() &&
-             tStampRetMS.count() < (tStampRefSolMS + std::chrono::milliseconds(5)).count());
+    auto tStampRetMS =
+            (std::chrono::duration_cast<std::chrono::milliseconds>(bestTimestamp.time_since_epoch())).count();
+    auto tStampRefSolMS =
+            (std::chrono::duration_cast<std::chrono::milliseconds>(solBestTimestamp.time_since_epoch())).count();
+
+    QVERIFY(tStampRefSolMS - 5 < tStampRetMS && tStampRetMS < tStampRefSolMS + 5);
+    qInfo() << "PASS   : Test 1";
+
+
+    // Test 2
+    // get time when the "best" transformation betwen f1 and f3 is available for the transMem2
+    src = "f1"; dst = "f3";
+
+    transMems.at(1)->getBestLink(src, dst, bestTimestamp);
+    solBestTimestamp = tStampZ +  std::chrono::milliseconds(67);
+
+    tStampRetMS =
+            (std::chrono::duration_cast<std::chrono::milliseconds>(bestTimestamp.time_since_epoch())).count();
+    tStampRefSolMS =
+            (std::chrono::duration_cast<std::chrono::milliseconds>(solBestTimestamp.time_since_epoch())).count();
+
+    QVERIFY(tStampRefSolMS - 5 < tStampRetMS && tStampRetMS < tStampRefSolMS + 5);
+    qInfo() << "PASS   : Test 2";
 }
 
-*/
+
 void transmemTest::pruningTest(){
 
     /* A sequence of updates and queries on a single
-       link to test the internal pruning.   */
+       link to test the internal pruning. */
 
     Timestamp tStampZ = std::chrono::high_resolution_clock::now(),
               tStampQ = tStampZ - std::chrono::seconds(2);
@@ -283,7 +250,7 @@ void transmemTest::pruningTest(){
 void transmemTest::inversionTestSimple(){
 
     /*  After registering some links in the datastructure different queries
-        are made and the result is compared with the inverse query.         */
+        are made and the result is compared with the inverse query.  */
 
     TransMem transMem; FrameID src, dst; QMatrix4x4 res, resInv;
 
@@ -362,7 +329,7 @@ void transmemTest::inversionTestwithAmbigousPath(){
     /* After the registration of some links most of the frames
        are connected through multiple paths. Different queries are made
        and compared with the inverse query to see if the datastructure
-       handles the ambiguouity due to multiple paths right.             */
+       handles the ambiguouity due to multiple paths right. */
 
     TransMem transMem; FrameID src, dst; QMatrix4x4 res, resInv;
 

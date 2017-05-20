@@ -1,5 +1,7 @@
 #include "gmlWriter.h"
 
+// rather ugly...
+
 bool GMLWriter::write(TransMem * const tm){
 
     if(tm == nullptr){

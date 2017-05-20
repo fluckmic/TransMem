@@ -17,6 +17,7 @@ class transmemTest : public QObject {
     void inversionTestSimple();
     void inversionTestwithAmbigousPath();
     void pruningTest();
+    void bestPointInTimeTest();
 };
 
 
