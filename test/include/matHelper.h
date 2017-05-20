@@ -30,5 +30,7 @@ public:
    static QMatrix4x4 simpleParam2(Timestamp t);
    static QMatrix4x4 simpleParam2Inv(Timestamp t);
 
+   static QMatrix4x4 simpleParam3(Timestamp t);
+   static QMatrix4x4 simpleParam3Inv(Timestamp t);
 
 };

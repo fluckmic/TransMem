@@ -361,7 +361,6 @@ void transmemTest::dynamicTest_data(){
 }
 
 
-
 void transmemTest::dynamicTest(){
 
     TransMem transMem;
@@ -428,44 +427,33 @@ void transmemTest::dynamicTest(){
     res = transMem.getLink(src, dst, tStamp);
     QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
 
-    /*
-    tStamp = tStamp + std::chrono::seconds(1);
-    res = transMem.getLink(src, dst, tStamp);
-    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
-
+    // test case
+    // **2**D**1**E**3
+    // D
     src = "f4"; dst = "f2";
+    tStamp = tStamp + std::chrono::milliseconds(100);
     tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
-    tStamp = tStamp + std::chrono::milliseconds(345);
     transMem.registerLink(src, dst, tStamp, tMat);
     sol.updateSolution(src, dst, tStamp);
-
-    src = "f2"; dst = "f1";
+    // E
+    tStamp = tStamp + std::chrono::milliseconds(60);
     tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
-    tStamp = tStamp - std::chrono::milliseconds(5);
     transMem.registerLink(src, dst, tStamp, tMat);
     sol.updateSolution(src, dst, tStamp);
-
-    src = "f2"; dst = "f4";
-    tMat = (link2paramTransMat.at(toLinkString(src,dst)))(tStamp);
-    tStamp = tStamp - std::chrono::milliseconds(25);
-    transMem.registerLink(src, dst, tStamp, tMat);
-    sol.updateSolution(src, dst, tStamp);
-
-    src = "f1"; dst = "f4";
-    tStamp = tStamp + std::chrono::milliseconds(10);
+    // 3
+    tStamp = tStamp - std::chrono::milliseconds(10);
     res = transMem.getLink(src, dst, tStamp);
     QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
-    */
+    // 2
+    tStamp = tStamp + std::chrono::milliseconds(20);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+    // 1
+    tStamp = tStamp - std::chrono::milliseconds(30);
+    res = transMem.getLink(src, dst, tStamp);
+    QVERIFY(sol.checkTransformation(src, dst, tStamp, res));
+
 }
-
-
-
-
-
-
-
-
-
 
 bool transmemTest::compareHelper(const QMatrix4x4 &ref, const QMatrix4x4 &oth, double eps){
 
