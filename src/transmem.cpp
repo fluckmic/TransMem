@@ -22,8 +22,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
     // TODO: check if normalized rotation quaternion and pure translation quaternion?!
 
-    // get the lock
-    lock.lock();
+    std::lock_guard<std::recursive_mutex> guard(lock);
 
     // check if frames already exist
     auto iter2SrcFrame = frameID2Frame.find(srcFrame);
@@ -69,9 +68,6 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
         // TODO debug message: entry not stored since entry is to old
     }
 
-    // release the lock
-    lock.unlock();
-
     return;
 }
 
@@ -110,19 +106,22 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 }
 
-bool TransMem::shortestPath(Path &path){
+bool TransMem::shortestPath(Path &path) const{
 
     Dijkstra dijkstra(frameID2Frame);
     return dijkstra.calculateShortestPath(path);
 
 }
 
-void TransMem::dumpAsJSON() {
+void TransMem::dumpAsJSON() const {
 
     // TODO: add date and time to filename of dump
 
     QJsonObject transmemObject;
-    lock.lock(); writeJSON(transmemObject); lock.unlock();
+
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    writeJSON(transmemObject);
 
     dumpJSONfile("TransMemDump", transmemObject);
 
@@ -148,50 +147,48 @@ void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json) const 
 
 }
 
-void TransMem::dumpPathAsJSON(const Path &p){
+void TransMem::dumpPathAsJSON(const Path &p) const{
 
     // TODO:: add date and time to filname of dump
 
    QJsonObject pathObject;
-   lock.lock(); p.writeJSON(pathObject); lock.unlock();
+
+   std::lock_guard<std::recursive_mutex> guard(lock);
+   p.writeJSON(pathObject);
 
    dumpJSONfile("PathDump", pathObject);
 
-   return;
 }
 
-void TransMem::dumpAsGraphML() {
+void TransMem::dumpAsGraphML() const {
 
-   GMLWriter writer;
+   GraphMLWriter writer;
 
-   lock.lock(); writer.write(this); lock.unlock();
+   std::lock_guard<std::recursive_mutex> guard(lock);
+   writer.write(*this);
 
 }
 
-QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) {
+QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const {
 
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to query for link if source frame is equal to destination frame.");
 
-    // get the lock
-    lock.lock();
+    std::lock_guard<std::recursive_mutex> guard(lock);
 
     // search for shortest path between source frame and  destination frame
     Path p{srcFrame, destFrame, std::vector<Link*>()};
 
-    if(!shortestPath(p)){
-        lock.unlock();
+    if(!shortestPath(p))
         throw NoSuchLinkFoundException(srcFrame, destFrame);
-    }
 
-    this->dumpPathAsJSON(p);
+    dumpPathAsJSON(p);
+
+    dumpAsGraphML();
 
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
     calculateTransformation(p, t);
-
-     // release the lock
-    lock.unlock();
 
     // convert to QMatrix4x4
     QMatrix3x3 rot = t.rotation.toRotationMatrix();
@@ -202,26 +199,23 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
 
 }
 
-QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2){
+QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const{
 
     return getLink(fixFrame, destFrame, tstamp2) * getLink(srcFrame, fixFrame, tstamp1);
 
 }
 
-QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) {
+QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const {
 
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to query for link if source frame is equal to destination frame.");
 
-    // get the lock
-    lock.lock();
+    std::lock_guard<std::recursive_mutex> guard(lock);
 
     // search for shortest path between source frame and  destination frame
     Path p{srcFrame, destFrame, std::vector<Link*>()};
-    if(!shortestPath(p)){
-        lock.unlock();
+    if(!shortestPath(p))
         throw NoSuchLinkFoundException(srcFrame, destFrame);
-    }
 
     // evaluate best point in time
     calculateBestPointInTime(p, tstamp);
@@ -230,9 +224,6 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
     calculateTransformation(p, t);
 
-     // release the lock
-    lock.unlock();
-
     // convert to QMatrix4x4
     QMatrix3x3 rot = t.rotation.toRotationMatrix();
     QMatrix4x4 ret(rot);
@@ -242,7 +233,7 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
 
 }
 
- bool TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation){
+ bool TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation) const {
 
     // we asume the thread already holds the lock.
 
@@ -269,7 +260,7 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
      return true;
  }
 
- bool TransMem::calculateBestPointInTime(Path &p, Timestamp &tStampBestPoinInTime){
+ bool TransMem::calculateBestPointInTime(Path &p, Timestamp &tStampBestPoinInTime) const{
 
      // we search for the best transformation in the timespan between the time when the
      // newest entry was inserted and when the oldest entry was inserted of all the links in the path

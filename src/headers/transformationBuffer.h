@@ -21,7 +21,7 @@ public:
 
     bool entryAt(StampedTransformation &te) const;
 
-    bool addEntry(StampedTransformation &te);
+    bool addEntry(const StampedTransformation &te);
 
     bool oldestEntry(StampedTransformation &te) const;
 

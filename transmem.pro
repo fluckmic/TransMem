@@ -9,17 +9,17 @@ QT += gui
 HEADERS += include/transmem/transmem.h \
     src/headers/typedefs.h \
     src/headers/frameAndLink.h \
-    src/headers/gmlWriter.h \
     src/headers/stampedTransformation.h \
     src/headers/transformationBuffer.h \
-    src/headers/dijkstra.h
+    src/headers/dijkstra.h \
+    src/headers/graphMLWriter.h \
 
 SOURCES += src/transmem.cpp \
     src/frameAndLink.cpp \
-    src/gmlWriter.cpp \
     src/stampedTransformation.cpp \
     src/transformationBuffer.cpp \
-    src/dijkstra.cpp
+    src/dijkstra.cpp \
+    src/graphMLWriter.cpp
 
 INCLUDEPATH += include
 

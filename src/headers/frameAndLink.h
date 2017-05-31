@@ -48,7 +48,7 @@ public:
 
 protected:
 
-    enum AccessType { TIME, OLDEST, NEWEST };
+    enum class AccessType { TIME, OLDEST, NEWEST };
 
     bool getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType) const;
 

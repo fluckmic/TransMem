@@ -69,7 +69,7 @@ bool TransformationBuffer::newestEntry(StampedTransformation &te) const {
     return true;
 }
 
-bool TransformationBuffer::addEntry(StampedTransformation &te){
+bool TransformationBuffer::addEntry(const StampedTransformation &te){
 
     // buffer is empty, insert new entry and return
     if( buffer.empty() ){

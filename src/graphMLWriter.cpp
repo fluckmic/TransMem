@@ -1,13 +1,6 @@
-#include "src/headers/gmlWriter.h"
+#include "src/headers/graphMLWriter.h"
 
-// rather ugly...
-
-bool GMLWriter::write(TransMem * const tm){
-
-    if(tm == nullptr){
-        // TODO: error msg
-        return false;
-    }
+bool GraphMLWriter::write(const TransMem &tm) {
 
     QFile file(QString::fromStdString("TransMemDump.graphml"));
 
@@ -30,11 +23,11 @@ bool GMLWriter::write(TransMem * const tm){
     xml.writeAttribute("edgedefault", "directed");
 
     // add frames
-    for(Frame f : tm->frames)
+    for(Frame f : tm.frames)
        addNode(QString::fromStdString(f.frameID));
 
     // add links
-    for(Link l : tm->links){
+    for(Link l : tm.links){
         QString parent = QString::fromStdString(l.parent->frameID);
         QString child =  QString::fromStdString(l.child->frameID);
         addEdge(parent+"-"+child, parent, child);
@@ -53,14 +46,14 @@ bool GMLWriter::write(TransMem * const tm){
     return true;
 }
 
-void GMLWriter::addNode(const QString &name){
+void GraphMLWriter::addNode(const QString &name){
 
     xml.writeStartElement("node");
     xml.writeAttribute("id", name);
     xml.writeEndElement();  // end node
 
 }
-void GMLWriter::addEdge(const QString &label, const QString &src, const QString &dst){
+void GraphMLWriter::addEdge(const QString &label, const QString &src, const QString &dst){
 
     xml.writeStartElement("edge");
     xml.writeAttribute("id", label);
@@ -70,7 +63,7 @@ void GMLWriter::addEdge(const QString &label, const QString &src, const QString 
 
     return;
 }
-void GMLWriter::addKey(const QString &id, const QString &attributeTarget, const QString &name, const QString &attributeType){
+void GraphMLWriter::addKey(const QString &id, const QString &attributeTarget, const QString &name, const QString &attributeType){
 
     xml.writeStartElement("key");
     xml.writeAttribute("id", id);

@@ -32,7 +32,7 @@ bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation 
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    return getTransformation(srcFrame, stampedTransformation, TIME);
+    return getTransformation(srcFrame, stampedTransformation, AccessType::TIME);
 }
 
 bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const {
@@ -41,7 +41,7 @@ bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    return getTransformation(srcFrame, stampedTransformation, OLDEST);
+    return getTransformation(srcFrame, stampedTransformation, AccessType::OLDEST);
 }
 
 bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const{
@@ -50,7 +50,7 @@ bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    return getTransformation(srcFrame, stampedTransformation, NEWEST);
+    return getTransformation(srcFrame, stampedTransformation, AccessType::NEWEST);
 }
 
 bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType) const{
@@ -59,12 +59,12 @@ bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &sta
 
     switch(accessType){
 
-    case TIME:      ret = buf.entryAt(stampedTransformation);
-                    break;
-    case OLDEST:    ret = buf.oldestEntry(stampedTransformation);
-                    break;
-    case NEWEST:    ret = buf.newestEntry(stampedTransformation);
-                    break;
+    case AccessType::TIME:      ret = buf.entryAt(stampedTransformation);
+                                break;
+    case AccessType::OLDEST:    ret = buf.oldestEntry(stampedTransformation);
+                                break;
+    case AccessType::NEWEST:    ret = buf.newestEntry(stampedTransformation);
+                                break;
     default:        assert(false);
                     /* we should never reach this point but
                        it's always good to have a default plan. */

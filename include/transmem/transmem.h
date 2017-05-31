@@ -15,7 +15,7 @@
 #include "src/headers/typedefs.h"
 #include "src/headers/frameAndLink.h"
 #include "src/headers/stampedTransformation.h"
-#include "src/headers/gmlWriter.h"
+#include "src/headers/graphMLWriter.h"
 #include "src/headers/dijkstra.h"
 
 
@@ -79,7 +79,7 @@ struct Path {
 class TransMem
 {
 
-friend class GMLWriter;
+friend class GraphMLWriter;
 
 public:
 
@@ -94,14 +94,18 @@ public:
      * Alternative constructor.@n
      * Constructs a transmem object which bufferes the entries
      * for the duration specified in @a dur.
+     * If the duration is smaller than one second, the duration
+     * is set to one second.
      * @param dur buffer duration in seconds
      *
      */
     TransMem(DurationSec storageTime)
     : storageTime(storageTime)
     {
+        // if the duration time is smaller than one second,
+        // we set the duration time to one second.
         if(storageTime < DurationSec(1))
-            storageTime = DurationSec(10);
+            storageTime = DurationSec(1);
     }
 
     /**
@@ -147,7 +151,7 @@ public:
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
-    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp);
+    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const;
 
     /**
      * @fn QQuaternion getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const
@@ -163,7 +167,7 @@ public:
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
-    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2);
+    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const;
 
     /**
      * @fn QQuaternion getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const
@@ -180,19 +184,19 @@ public:
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
-    QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp);
+    QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const;
 
-    void dumpAsJSON();
+    void dumpAsJSON() const;
 
-    void dumpAsGraphML();
+    void dumpAsGraphML() const;
 
 protected:
 
-    bool shortestPath(Path &p);
+    bool shortestPath(Path &p) const;
 
-    bool calculateBestPointInTime(Path &p, Timestamp &tStampBestPointInTime);
+    bool calculateBestPointInTime(Path &p, Timestamp &tStampBestPointInTime) const;
 
-    bool calculateTransformation(const Path &p, StampedTransformation &e);
+    bool calculateTransformation(const Path &p, StampedTransformation &e) const;
 
     std::unordered_map<FrameID, Frame*> frameID2Frame;
 
@@ -201,12 +205,12 @@ protected:
 
     DurationSec storageTime{10};
 
-    std::recursive_mutex lock;
+    mutable std::recursive_mutex lock;
 
     // JSON output
     void writeJSON(QJsonObject &json) const;
     void dumpJSONfile(const QString &path, const QJsonObject &json) const;
-    void dumpPathAsJSON(const Path &p);
+    void dumpPathAsJSON(const Path &p) const;
 };
 
 #endif // TRANSMEM_H
