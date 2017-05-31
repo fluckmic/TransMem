@@ -5,7 +5,7 @@
 #include <QtGui/QGenericMatrix>
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QVector3D>
-#include "typedefs.h"
+#include "src/headers/typedefs.h"
 
 #endif // MATHELPER_H
 

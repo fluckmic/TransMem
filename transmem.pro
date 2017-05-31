@@ -11,15 +11,15 @@ HEADERS += include/transmem/transmem.h \
     src/headers/frameAndLink.h \
     src/headers/gmlWriter.h \
     src/headers/stampedTransformation.h \
-    src/headers/diijkstra.h \
     src/headers/transformationBuffer.h \
+    src/headers/dijkstra.h
 
 SOURCES += src/transmem.cpp \
     src/frameAndLink.cpp \
     src/gmlWriter.cpp \
     src/stampedTransformation.cpp \
     src/transformationBuffer.cpp \
-    src/diijkstra.cpp \
+    src/dijkstra.cpp
 
 INCLUDEPATH += include
 

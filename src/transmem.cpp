@@ -2,7 +2,7 @@
     \brief  source file transmem.cpp
 */
 
-#include "transmem.h"
+#include "transmem/transmem.h"
 
 /****************************
  * NOSUCHLINKFOUNDEXCEPTION *

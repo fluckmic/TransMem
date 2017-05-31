@@ -1,4 +1,4 @@
-#include "gmlWriter.h"
+#include "src/headers/gmlWriter.h"
 
 // rather ugly...
 

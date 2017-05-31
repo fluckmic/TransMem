@@ -1,4 +1,4 @@
-        #include "diijkstra.h"
+        #include "src/headers/dijkstra.h"
 
     bool Diijkstra::calculateShortestPath(Path &path){
 

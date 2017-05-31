@@ -3,7 +3,7 @@
 
 #include <QXmlStreamWriter>
 #include <QFile>
-#include <typedefs.h>
+#include "src/headers/typedefs.h"
 
 #include "transmem/transmem.h"
 

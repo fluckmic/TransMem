@@ -1,6 +1,6 @@
 #include <QtTest/QTest>
 
-#include "transmem.h"
+#include "transmem/transmem.h"
 #include "matHelper.h"
 #include <math.h>
 

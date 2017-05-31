@@ -12,11 +12,11 @@
 #include <queue>
 #include <mutex>
 
-#include "typedefs.h"
-#include "frameAndLink.h"
-#include "stampedTransformation.h"
-#include "gmlWriter.h"
-#include "diijkstra.h"
+#include "src/headers/typedefs.h"
+#include "src/headers/frameAndLink.h"
+#include "src/headers/stampedTransformation.h"
+#include "src/headers/gmlWriter.h"
+#include "src/headers/dijkstra.h"
 
 
 /****************************
