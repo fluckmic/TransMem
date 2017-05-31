@@ -1,6 +1,6 @@
         #include "src/headers/dijkstra.h"
 
-    bool Diijkstra::calculateShortestPath(Path &path){
+    bool Dijkstra::calculateShortestPath(Path &path){
 
         // check if the source frame exists
         if(frameID2Frame.find(path.src) == frameID2Frame.end())
@@ -26,9 +26,9 @@
         return true;
     }
 
-    void Diijkstra::initializeGraph(){
+    void Dijkstra::initializeGraph(){
 
-        // initialize for dikstra
+        // initialize for dijkstra
         // set the distance of all frames to infinity and the predecessor to null
         auto iter = frameID2Frame.begin();
         while(iter != frameID2Frame.end()){
@@ -44,7 +44,7 @@
 
     }
 
-    bool Diijkstra::searchPath(Path &path){
+    bool Dijkstra::searchPath(Path &path){
 
         while(ptr2CurrFrame->frameID != path.src){
             // update distance between current node and its adjascent nodes
@@ -63,7 +63,7 @@
         return true;
     }
 
-    void Diijkstra::getPath(Path &path){
+    void Dijkstra::getPath(Path &path){
 
         Link* currLink;
 
@@ -87,7 +87,7 @@
         }
     }
 
-    bool Diijkstra::set2ShortestRemaining(){
+    bool Dijkstra::set2ShortestRemaining(){
 
         // set ptr2CurrFrame to the shortest active frame
         // one could improve the performance by using a priority queue..
@@ -114,7 +114,7 @@
         return true;
     }
 
-    void Diijkstra::updateDistance(Frame *ptr2adjFrame, double w){
+    void Dijkstra::updateDistance(Frame *ptr2adjFrame, double w){
 
         double alternativeDist = ptr2CurrFrame->distance + w;
 

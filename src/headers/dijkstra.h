@@ -1,5 +1,5 @@
-#ifndef DIIJKSTRA_H
-#define DIIJKSTRA_H
+#ifndef DIJKSTRA_H
+#define DIJKSTRA_H
 
 #include "frameAndLink.h"
 #include "transmem/transmem.h"
@@ -7,10 +7,10 @@
 
 struct Path;
 
-class Diijkstra
+class Dijkstra
 {
 public:
-    Diijkstra(std::unordered_map<FrameID, Frame*> frameID2Frame)
+    Dijkstra(std::unordered_map<FrameID, Frame*> frameID2Frame)
     : frameID2Frame(frameID2Frame)
     {}
 
@@ -30,4 +30,4 @@ protected:
 
 };
 
-#endif // DIIJKSTRA_H
+#endif // DIJKSTRA_H

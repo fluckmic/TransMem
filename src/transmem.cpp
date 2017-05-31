@@ -112,8 +112,8 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 bool TransMem::shortestPath(Path &path){
 
-    Diijkstra diijkstra(frameID2Frame);
-    return diijkstra.calculateShortestPath(path);
+    Dijkstra dijkstra(frameID2Frame);
+    return dijkstra.calculateShortestPath(path);
 
 }
 
