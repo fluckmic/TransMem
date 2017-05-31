@@ -6,14 +6,13 @@
 
 QT += gui
 
-HEADERS += include/transmem.h \
-    include/typedefs.h \
-    include/frameAndLink.h \
-    include/gmlWriter.h \
-    include/stampedTransformation.h \
-    include/diijkstra.h \
-    include/transformationBuffer.h \
-    test/include/matHelper.h
+HEADERS += include/transmem/transmem.h \
+    src/headers/typedefs.h \
+    src/headers/frameAndLink.h \
+    src/headers/gmlWriter.h \
+    src/headers/stampedTransformation.h \
+    src/headers/diijkstra.h \
+    src/headers/transformationBuffer.h \
 
 SOURCES += src/transmem.cpp \
     src/frameAndLink.cpp \
@@ -21,7 +20,6 @@ SOURCES += src/transmem.cpp \
     src/stampedTransformation.cpp \
     src/transformationBuffer.cpp \
     src/diijkstra.cpp \
-    test/src/matHelper.cpp
 
 INCLUDEPATH += include
 
@@ -33,9 +31,11 @@ test{
 
     QT += testlib
 
-    HEADERS += test/include/transmemTest.h
-    SOURCES += test/src/transmemTest.cpp
+    HEADERS += test/include/transmemTest.h \
+               test/include/matHelper.h
 
+    SOURCES += test/src/transmemTest.cpp \
+               test/src/matHelper.cpp
 
     TEMPLATE = app
     TARGET = myapptests

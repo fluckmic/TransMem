@@ -19,17 +19,15 @@ public:
     : storageTime(d)
     {}
 
-    bool entryAt(StampedTransformation &te);
+    bool entryAt(StampedTransformation &te) const;
 
     bool addEntry(StampedTransformation &te);
 
-    bool oldestEntry(StampedTransformation &te);
+    bool oldestEntry(StampedTransformation &te) const;
 
-    bool newestEntry(StampedTransformation &te);
+    bool newestEntry(StampedTransformation &te) const;
 
-    bool tStampOldestEntry(Timestamp &ts);
-
-    bool distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry);
+    bool distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry) const;
 
     void printCurrentBuffer();
 
@@ -37,7 +35,7 @@ public:
 
 protected:
 
-    void interpolate(const StampedTransformation &el, const StampedTransformation &er, StampedTransformation &res);
+    void interpolate(const StampedTransformation &el, const StampedTransformation &er, StampedTransformation &res) const;
 
     void pruneStorage();
 

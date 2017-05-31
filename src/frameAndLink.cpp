@@ -5,13 +5,13 @@
  * LINK                     *
  ****************************/
 
-bool Link::distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry){
+bool Link::distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry) const{
 
     return buf.distanceToNextClosestEntry(tStamp, distanceToCloserEntry);
 }
 
 
-bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation){
+bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation) {
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
@@ -26,7 +26,7 @@ bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stam
     return buf.addEntry(stampedTransformation);
 }
 
-bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
+bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const{
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
@@ -35,7 +35,7 @@ bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation 
     return getTransformation(srcFrame, stampedTransformation, TIME);
 }
 
-bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
+bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const {
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
@@ -44,7 +44,7 @@ bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &
     return getTransformation(srcFrame, stampedTransformation, OLDEST);
 }
 
-bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation){
+bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const{
 
     // NOTE: assertion just during development
     // caller should not call the function on a wrong link
@@ -53,7 +53,7 @@ bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &
     return getTransformation(srcFrame, stampedTransformation, NEWEST);
 }
 
-bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType){
+bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType) const{
 
     bool ret = false;
 
@@ -79,7 +79,7 @@ bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &sta
     return true;
 }
 
-void Link::invertTransformation(StampedTransformation &stampedTransformation){
+void Link::invertTransformation(StampedTransformation &stampedTransformation) const {
 
     stampedTransformation.rotation = stampedTransformation.rotation.inverted();
     stampedTransformation.translation = -(stampedTransformation.rotation*stampedTransformation.translation*stampedTransformation.rotation.conjugated());

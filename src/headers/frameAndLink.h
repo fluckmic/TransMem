@@ -28,15 +28,15 @@ public:
     , buf(_storageTime)
     {}
 
-    bool oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
+    bool oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const;
 
-    bool newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
+    bool newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const;
 
     bool addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation);
 
-    bool transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation);
+    bool transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const;
 
-    bool distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry);
+    bool distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry) const;
 
     Frame *const parent;
 
@@ -50,9 +50,9 @@ protected:
 
     enum AccessType { TIME, OLDEST, NEWEST };
 
-    bool getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType);
+    bool getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType) const;
 
-    void invertTransformation(StampedTransformation &stampedTransformation);
+    void invertTransformation(StampedTransformation &stampedTransformation) const;
 
      TransformationBuffer buf;
 };

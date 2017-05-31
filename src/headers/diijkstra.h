@@ -2,7 +2,7 @@
 #define DIIJKSTRA_H
 
 #include "frameAndLink.h"
-#include "transmem.h"
+#include "transmem/transmem.h"
 #include <unordered_map>
 
 struct Path;

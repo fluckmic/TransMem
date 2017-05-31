@@ -3,7 +3,7 @@
 using namespace std;
 using namespace std::chrono;
 
-bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, milliseconds &distanceToCloserEntry){
+bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, milliseconds &distanceToCloserEntry) const {
 
     milliseconds tStampMS = chrono::duration_cast<milliseconds>(tStamp.time_since_epoch());
 
@@ -51,7 +51,7 @@ bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, m
     return true;
 }
 
-bool TransformationBuffer::oldestEntry(StampedTransformation &te){
+bool TransformationBuffer::oldestEntry(StampedTransformation &te) const {
 
     if(buffer.empty())
         return false;
@@ -60,7 +60,7 @@ bool TransformationBuffer::oldestEntry(StampedTransformation &te){
     return true;
 }
 
-bool TransformationBuffer::newestEntry(StampedTransformation &te){
+bool TransformationBuffer::newestEntry(StampedTransformation &te) const {
 
     if(buffer.empty())
         return false;
@@ -131,7 +131,7 @@ void TransformationBuffer::printCurrentBuffer(){
         cout << te;
 }
 
-bool TransformationBuffer::entryAt(StampedTransformation &te) {
+bool TransformationBuffer::entryAt(StampedTransformation &te) const {
 
     // return false if buffer is empty
     if(buffer.empty())
@@ -165,7 +165,7 @@ bool TransformationBuffer::entryAt(StampedTransformation &te) {
     return true;
 }
 
-void TransformationBuffer::interpolate(const StampedTransformation &el, const StampedTransformation &er, StampedTransformation &res){
+void TransformationBuffer::interpolate(const StampedTransformation &el, const StampedTransformation &er, StampedTransformation &res) const{
 
     milliseconds abs = duration_cast<milliseconds>(er.time-el.time);
     milliseconds lt = duration_cast<milliseconds>(res.time-el.time);
