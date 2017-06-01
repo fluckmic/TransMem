@@ -199,9 +199,8 @@ protected:
 
     bool calculateTransformation(const Path &path, StampedTransformation &e) const;
 
-    std::unordered_map<FrameID, Frame*> frameID2Frame;
+    std::unordered_map<FrameID, Frame> frameID2Frame;
 
-    std::deque<Frame> frames;
     std::deque<Link> links;
 
     DurationSec storageTime{10};

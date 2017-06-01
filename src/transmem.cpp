@@ -33,23 +33,21 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
     // if a frame does not exist, create it
     if(iter2SrcFrame == frameID2Frame.end()){
 
-        frames.emplace_back(Frame{srcFrame});
-        ptr2SrcFrame = &frames.back();
-        frameID2Frame.insert({srcFrame, ptr2SrcFrame});
+        frameID2Frame.insert({srcFrame, Frame{srcFrame}});
+        ptr2SrcFrame = &(*frameID2Frame.find(srcFrame)).second;
 
     }
     else
-        ptr2SrcFrame = (*iter2SrcFrame).second;
+        ptr2SrcFrame = &(*iter2SrcFrame).second;
 
     if(iter2DstFrame == frameID2Frame.end()){
 
-        frames.emplace_back(Frame{destFrame});
-        ptr2DstFrame = &frames.back();
-        frameID2Frame.insert({destFrame, ptr2DstFrame});
+        frameID2Frame.insert({destFrame, Frame{destFrame}});
+        ptr2DstFrame = &(*frameID2Frame.find(destFrame)).second;
 
     }
     else
-        ptr2DstFrame = (*iter2DstFrame).second;
+        ptr2DstFrame = &(*iter2DstFrame).second;
 
     // check if a link between srcFrame and destFrame exists
     Link* ptr2Link = nullptr;
@@ -88,9 +86,9 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 void TransMem::writeJSON(QJsonObject &json) const {
 
     QJsonArray frameObjects;
-    for(Frame f: frames){
+    for(auto f: frameID2Frame){
         QJsonObject frameObject;
-        f.writeJSON(frameObject);
+        f.second.writeJSON(frameObject);
         frameObjects.append(frameObject);
     }
 
@@ -108,8 +106,9 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 bool TransMem::shortestPath(Path &path) const {
 
-    Dijkstra dijkstra(frameID2Frame);
-    return dijkstra.calculateShortestPath(path);
+    // TODO:
+    // rework calculation of shortest path.
+    return false;
 
 }
 

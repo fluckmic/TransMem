@@ -14,7 +14,7 @@
         // we start from the destination frame and search a path
         // to the source frame, that allows us to create the path from
         // source frame to destination frame later on
-        ptr2CurrFrame = (*iter2DstFrame).second;
+        ptr2CurrFrame = &(*iter2DstFrame).second;
 
         initializeGraph();
 
@@ -32,7 +32,7 @@
         // set the distance of all frames to infinity and the predecessor to null
         auto iter = frameID2Frame.begin();
         while(iter != frameID2Frame.end()){
-            Frame* f = (*iter).second;
+            Frame* f = &(*iter).second;
             f->distance = std::numeric_limits<double>::infinity();
             f->predecessor = nullptr;
             f->active = true;
@@ -97,7 +97,7 @@
         double minDist = std::numeric_limits<double>::infinity();
 
         while(iter != frameID2Frame.end()){
-            Frame* cur = (*iter).second;
+            Frame* cur = &(*iter).second;
             if(cur->distance < minDist && cur->active){
                 ptr2CurrFrame = cur;
                 minDist = cur->distance;
