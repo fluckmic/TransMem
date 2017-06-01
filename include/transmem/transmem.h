@@ -11,6 +11,7 @@
 #include <deque>
 #include <queue>
 #include <mutex>
+#include <functional>
 
 #include "src/headers/typedefs.h"
 #include "src/headers/frameAndLink.h"
@@ -66,7 +67,7 @@ private:
 struct Path {
     FrameID src;
     FrameID dst;
-    std::vector<Link*> links;
+    std::vector< std::reference_wrapper<Link> > links;
 
     void writeJSON(QJsonObject &json) const;
 };
@@ -194,9 +195,9 @@ protected:
 
     bool shortestPath(Path &p) const;
 
-    bool calculateBestPointInTime(Path &p, Timestamp &tStampBestPointInTime) const;
+    bool calculateBestPointInTime(Path &path, Timestamp &tStampBestPointInTime) const;
 
-    bool calculateTransformation(const Path &p, StampedTransformation &e) const;
+    bool calculateTransformation(const Path &path, StampedTransformation &e) const;
 
     std::unordered_map<FrameID, Frame*> frameID2Frame;
 

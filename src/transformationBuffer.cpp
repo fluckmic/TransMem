@@ -126,7 +126,7 @@ void TransformationBuffer::pruneStorage(){
     return;
 }
 
-void TransformationBuffer::printCurrentBuffer(){
+void TransformationBuffer::printCurrentBufferToSTDOut() const{
     for(StampedTransformation te : buffer )
         cout << te;
 }

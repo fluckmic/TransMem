@@ -16,14 +16,6 @@ class TransMem;
 // The graph represented by the GraphML file can be displayed for example with Gephi.
 // (https://gephi.org/)
 
-/*
-GraphML is a XML kind of format to represent graphs: https://en.wikipedia.org/wiki/GraphML
-
-One can for example use Gephi to display a GraphML file: https://gephi.org/
-
-I added a description and also changed the name of the class to GraphMLWriter, what is more correct.
- */
-
 
 class GraphMLWriter {
 

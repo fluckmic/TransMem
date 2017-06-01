@@ -22,10 +22,10 @@ friend class GMLWriter;
 
 public:
 
-    Link(Frame *const _parent, Frame *const _child, const DurationSec &_storageTime)
-    : parent{_parent}
-    , child(_child)
-    , buf(_storageTime)
+    Link(Frame *const parent, Frame *const child, const DurationSec &storageTime)
+    : parent{parent}
+    , child(child)
+    , buf(storageTime)
     {}
 
     bool oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const;

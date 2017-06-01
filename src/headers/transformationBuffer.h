@@ -29,7 +29,7 @@ public:
 
     bool distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry) const;
 
-    void printCurrentBuffer();
+    void printCurrentBufferToSTDOut() const;
 
     void writeJSON(QJsonObject &json) const;
 

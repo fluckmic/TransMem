@@ -39,8 +39,8 @@
             iter++;
         }
         // set the distance of the src frame to zero
-            ptr2CurrFrame->distance = 0.;
-            ptr2CurrFrame->active = false;
+        ptr2CurrFrame->distance = 0.;
+        ptr2CurrFrame->active = false;
 
     }
 
@@ -75,14 +75,14 @@
         // get the link to the predecessor
         ptr2CurrFrame->connectionTo(ptr2CurrFrame->predecessor->frameID, currLink);
         // add the link to the path
-        path.links.push_back(currLink);
+        path.links.push_back(std::ref(*currLink));
         // set the ptr to the predecessor
         ptr2CurrFrame = ptr2CurrFrame->predecessor;
 
         // repeat this until there is no longer a predecessor
         while(ptr2CurrFrame->predecessor != nullptr){
             ptr2CurrFrame->connectionTo(ptr2CurrFrame->predecessor->frameID, currLink);
-            path.links.push_back(currLink);
+            path.links.push_back(std::ref(*currLink));
             ptr2CurrFrame = ptr2CurrFrame->predecessor;
         }
     }

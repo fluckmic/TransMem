@@ -3,6 +3,8 @@
 
 #include "frameAndLink.h"
 #include "transmem/transmem.h"
+
+#include <functional>
 #include <unordered_map>
 
 struct Path;

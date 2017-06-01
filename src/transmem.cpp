@@ -106,7 +106,7 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 }
 
-bool TransMem::shortestPath(Path &path) const{
+bool TransMem::shortestPath(Path &path) const {
 
     Dijkstra dijkstra(frameID2Frame);
     return dijkstra.calculateShortestPath(path);
@@ -177,7 +177,7 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
     std::lock_guard<std::recursive_mutex> guard(lock);
 
     // search for shortest path between source frame and  destination frame
-    Path p{srcFrame, destFrame, std::vector<Link*>()};
+    Path p{srcFrame, destFrame};
 
     if(!shortestPath(p))
         throw NoSuchLinkFoundException(srcFrame, destFrame);
@@ -213,7 +213,7 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     std::lock_guard<std::recursive_mutex> guard(lock);
 
     // search for shortest path between source frame and  destination frame
-    Path p{srcFrame, destFrame, std::vector<Link*>()};
+    Path p{srcFrame, destFrame};
     if(!shortestPath(p))
         throw NoSuchLinkFoundException(srcFrame, destFrame);
 
@@ -243,24 +243,24 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     currentTrans.time = stampedTransformation.time;
 
     // calculate transformation along the path
-    for(Link* l : path.links){
+    for(Link& l : path.links){
         // get the transformation of the current link
-        l->transformationAtTimeT(currentSrcFrameID, currentTrans);
+        l.transformationAtTimeT(currentSrcFrameID, currentTrans);
 
        stampedTransformation.rotation = currentTrans.rotation * stampedTransformation.rotation;
        stampedTransformation.translation = currentTrans.rotation * stampedTransformation.translation * currentTrans.rotation.inverted();
        stampedTransformation.translation = stampedTransformation.translation + currentTrans.translation;
 
        // choose new current frame depending on the direction of the link
-       if(l->parent->frameID == currentSrcFrameID)
-           currentSrcFrameID = l->child->frameID;
+       if(l.parent->frameID == currentSrcFrameID)
+           currentSrcFrameID = l.child->frameID;
        else
-           currentSrcFrameID = l->parent->frameID;
+           currentSrcFrameID = l.parent->frameID;
     }
      return true;
  }
 
- bool TransMem::calculateBestPointInTime(Path &p, Timestamp &tStampBestPoinInTime) const{
+ bool TransMem::calculateBestPointInTime(Path &path, Timestamp &tStampBestPoinInTime) const{
 
      // we search for the best transformation in the timespan between the time when the
      // newest entry was inserted and when the oldest entry was inserted of all the links in the path
@@ -268,13 +268,13 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
      Timestamp tStampOldest = std::chrono::time_point<std::chrono::high_resolution_clock>::max();
      StampedTransformation stampedTrans;
 
-     for(Link* l : p.links){
+     for(Link& l : path.links){
 
-        l->oldestTransformation(l->parent->frameID, stampedTrans);
+        l.oldestTransformation(l.parent->frameID, stampedTrans);
         if(stampedTrans.time < tStampOldest)
             tStampOldest = stampedTrans.time;
 
-        l->newestTransformation(l->parent->frameID, stampedTrans);
+        l.newestTransformation(l.parent->frameID, stampedTrans);
         if(stampedTrans.time > tStampBestPoinInTime)
             tStampBestPoinInTime = stampedTrans.time;
      }
@@ -285,8 +285,8 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
 
          std::chrono::milliseconds temp(0);
          unsigned long sum = 0;
-         for(Link* l: p.links){
-            l->distanceToNextClosestEntry(tStampCurr, temp);
+         for(Link &l: path.links){
+            l.distanceToNextClosestEntry(tStampCurr, temp);
             sum += temp.count() * temp.count();
          }
 
@@ -308,11 +308,11 @@ void Path::writeJSON(QJsonObject &json) const {
     QJsonObject sourceObject; sourceObject.insert("frameID", QString::fromStdString(src));
 
     QJsonArray linkObjects;
-    for(Link* l : links){
+    for(Link l : links){
         QJsonObject linkObject;
-        QJsonObject parentObject; parentObject.insert("frameID", QString::fromStdString(l->parent->frameID));
+        QJsonObject parentObject; parentObject.insert("frameID", QString::fromStdString(l.parent->frameID));
         linkObject.insert("01_parent", parentObject);
-        QJsonObject chilObject; parentObject.insert("frameID", QString::fromStdString(l->child->frameID));
+        QJsonObject chilObject; parentObject.insert("frameID", QString::fromStdString(l.child->frameID));
         linkObject.insert("02_child", parentObject);
         linkObjects.append(linkObject);
     }
