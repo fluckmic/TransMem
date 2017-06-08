@@ -106,8 +106,89 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 bool TransMem::shortestPath(Path &path) const {
 
-    // TODO:
-    // rework calculation of shortest path.
+    // check if the source frame exists
+    if(frameID2Frame.find(path.src) == frameID2Frame.end())
+        return false;
+
+    // check if the destination frame exists
+    auto iter2DstFrame = frameID2Frame.find(path.dst);
+    if(iter2DstFrame == frameID2Frame.end())
+        return false;
+
+   typedef std::pair<double, Frame*> distAndFramePtrPair;
+
+   std::priority_queue< distAndFramePtrPair, std::vector<distAndFramePtrPair>, std::greater<distAndFramePtrPair> > prQ;
+
+   std::unordered_map< FrameID, double > distances;
+   std::unordered_map< FrameID, Frame* > predecessors;
+
+   // initialize temporary datastructures
+   for(std::pair<FrameID, Frame> f : frameID2Frame){
+       distances.insert({f.first, std::numeric_limits<double>::infinity()});
+       predecessors.insert({f.first, nullptr});
+   }
+
+   // insert destination into priority queue and set distance to zero / predecessor to null
+   prQ.emplace(distAndFramePtrPair{0, (Frame*) (&(*frameID2Frame.find(path.dst)).second)});
+   distances.at(path.dst) = 0;
+
+   // search shortest path
+   while(!prQ.empty()){
+
+    Frame* currPtr2Frame = prQ.top().second;
+    double distanceViaCurr = prQ.top().first;
+
+    // we found the shortest path
+    if(currPtr2Frame->frameID == path.src){
+
+        // path has at least one link, since it is not possible to query
+        // for a transformation between the same frame
+        FrameID frameIDPred = predecessors.at(path.src)->frameID;
+        Link* link2Pred = nullptr;
+        currPtr2Frame->connectionTo(frameIDPred, link2Pred);
+        path.links.push_back(std::ref(*link2Pred));
+
+        while(true){
+
+            currPtr2Frame = predecessors.at(currPtr2Frame->frameID);
+
+            if(!predecessors.at(currPtr2Frame->frameID))
+                return true;    // path complete
+
+            frameIDPred = predecessors.at(currPtr2Frame->frameID)->frameID;
+            currPtr2Frame->connectionTo(frameIDPred, link2Pred);
+            path.links.push_back(std::ref(*link2Pred));
+
+        }
+
+        return true;
+    }
+
+    prQ.pop();
+
+    /*******************/
+    // helper lambda
+
+    auto updateDistance = [this, &prQ, &distances, &predecessors, &currPtr2Frame](FrameID adjFrameID, double alternativeDist){
+        if(alternativeDist < distances.at(adjFrameID)){
+            distances.at(adjFrameID) = alternativeDist;
+            predecessors.at(adjFrameID) = currPtr2Frame;
+            prQ.emplace(distAndFramePtrPair{alternativeDist, (Frame*) (&(*frameID2Frame.find(adjFrameID)).second)});
+        }
+    };
+    /*******************/
+
+
+    // update distances
+    for(Link* l : currPtr2Frame->parents)
+        updateDistance(l->parent->frameID, distanceViaCurr + l->weight);
+
+    for(Link* l : currPtr2Frame->children)
+        updateDistance(l->child->frameID, distanceViaCurr + l->weight);
+
+   }
+
+    // no path found
     return false;
 
 }
@@ -307,7 +388,7 @@ void Path::writeJSON(QJsonObject &json) const {
     QJsonObject sourceObject; sourceObject.insert("frameID", QString::fromStdString(src));
 
     QJsonArray linkObjects;
-    for(Link l : links){
+    for(Link& l : links){
         QJsonObject linkObject;
         QJsonObject parentObject; parentObject.insert("frameID", QString::fromStdString(l.parent->frameID));
         linkObject.insert("01_parent", parentObject);

@@ -11,9 +11,9 @@ class transmemTest : public QObject {
 
  private slots:
 
+    void throwsExceptionTest();
     void simpleQueriesTest();
     void simpleMultiStepQueriesTest();
-    void throwsExceptionTest();
     void inversionTestSimple();
     void inversionTestwithAmbigousPath();
     void pruningTest();

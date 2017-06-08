@@ -82,10 +82,6 @@ public:
 
     void writeJSON(QJsonObject &json) const;
 
-    // needed for dijkstra
-    double distance{0};
-    Frame* predecessor{nullptr};
-    bool active{true};
 
 };
 
