@@ -297,6 +297,7 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
 
 }
 
+// WARNING: TEST ME!
 QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const{
 
     return getLink(fixFrame, destFrame, tstamp2) * getLink(srcFrame, fixFrame, tstamp1);

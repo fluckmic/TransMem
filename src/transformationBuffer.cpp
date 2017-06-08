@@ -123,6 +123,14 @@ void TransformationBuffer::pruneStorage(){
     Timestamp mostRecent = ((StampedTransformation)buffer.back()).time;
     buffer.remove_if([&mostRecent, this](const StampedTransformation &te){return te.time + storageTime < mostRecent;});
 
+    // WARNING: TEST ME!
+    // to many entries, remove the oldest ones..
+    if(buffer.size() > maxNumberOfEntries){
+        while(buffer.size() > maxNumberOfEntries)
+            buffer.pop_front();
+    }
+
+
     return;
 }
 

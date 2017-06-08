@@ -46,7 +46,6 @@ protected:
     const DurationNanoSec minDistForInterpolation{5};
 
     const unsigned int maxNumberOfEntries = 1000000;
-    // TODO: avoid usage of more than maxNumberOfEntries in the buffer
 
 };
 
