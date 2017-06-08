@@ -21,7 +21,7 @@ class GraphMLWriter {
 
 public:
 
-    bool write(const TransMem &tm);
+    bool write(const QString &path, const TransMem &tm);
 
 protected:
 

@@ -20,7 +20,13 @@ const char* NoSuchLinkFoundException::what() const throw(){
 
 void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans){
 
-    // TODO: check if normalized rotation quaternion and pure translation quaternion?!
+    // check if rotation quaternion is normalized
+    if( qrot.length() < 0.995 || qrot.length() > 1.005)
+        qWarning() << "Rotation quaternion is not normalized.\n";
+
+    // check if translation quaternion is pure
+    if(qtrans.scalar() != 0.)
+        qWarning() << "Translation quaternion is not pure.\n";
 
     std::lock_guard<std::recursive_mutex> guard(lock);
 
@@ -63,8 +69,10 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
     // add the transformation to the link
     if(!ptr2Link->addTransformation(srcFrame, StampedTransformation{tstamp, qrot, qtrans})){
-        // TODO debug message: entry not stored since entry is to old
+        qWarning() << "Entry not stored since entry is to old.\n";
     }
+
+    this->dumpAsJSON();
 
     return;
 }
@@ -77,7 +85,12 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
    QMatrix3x3 rM(data);
 
-   // TODO: check if the rotation matrix is normal, emit a warning if not
+   // check if the rotation matrix is normal (det = 1/-1)
+   double det = fabs(data[0]*data[4]*data[8]+data[1]*data[5]*data[6]+data[2]*data[3]*data[7]-
+                     data[2]*data[4]*data[6]-data[1]*data[3]*data[8]+data[0]*data[5]*data[7]);
+
+   if(det < 0.995 || det > 1.005)
+       qWarning() << "Rotation Matrix is not normal.\n";
 
    registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)));
 
@@ -178,7 +191,6 @@ bool TransMem::shortestPath(Path &path) const {
     };
     /*******************/
 
-
     // update distances
     for(Link* l : currPtr2Frame->parents)
         updateDistance(l->parent->frameID, distanceViaCurr + l->weight);
@@ -195,24 +207,31 @@ bool TransMem::shortestPath(Path &path) const {
 
 void TransMem::dumpAsJSON() const {
 
-    // TODO: add date and time to filename of dump
-
+    QString path = "";
     QJsonObject transmemObject;
 
     std::lock_guard<std::recursive_mutex> guard(lock);
 
     writeJSON(transmemObject);
 
-    dumpJSONfile("TransMemDump", transmemObject);
+    dumpJSONfile(path, transmemObject, OutputType::TRANSMEM);
 
     return;
 }
 
-void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json) const {
+void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json, const OutputType &outputType) const {
 
-    QFile file(path+".json");
+    QDateTime currentTime = QDateTime::currentDateTime();
+    QString suffixFilename;
+
+    switch(outputType){
+        case OutputType::PATH:          suffixFilename = "_path_dump.json"; break;
+        case OutputType::TRANSMEM:      suffixFilename = "_transmem_dump.json"; break;
+    }
+
+    QFile file( path + currentTime.toString("ddMMyy_HHmmss") + suffixFilename);
     if(!file.open(QIODevice::WriteOnly)){
-        // TODO: error handling
+        qDebug() << file.errorString();
         return;
     }
 
@@ -221,7 +240,7 @@ void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json) const 
 
     file.close();
     if(file.error()){
-        // TODO: error handling
+        qDebug() << file.errorString();
         return;
     }
 
@@ -229,23 +248,23 @@ void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json) const 
 
 void TransMem::dumpPathAsJSON(const Path &p) const{
 
-    // TODO:: add date and time to filname of dump
-
+   QString path = "";
    QJsonObject pathObject;
 
    std::lock_guard<std::recursive_mutex> guard(lock);
    p.writeJSON(pathObject);
 
-   dumpJSONfile("PathDump", pathObject);
+   dumpJSONfile(path, pathObject, OutputType::PATH);
 
 }
 
 void TransMem::dumpAsGraphML() const {
 
    GraphMLWriter writer;
+   QString path = "";
 
    std::lock_guard<std::recursive_mutex> guard(lock);
-   writer.write(*this);
+   writer.write(path, *this);
 
 }
 
@@ -263,7 +282,6 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
         throw NoSuchLinkFoundException(srcFrame, destFrame);
 
     dumpPathAsJSON(p);
-
     dumpAsGraphML();
 
     // calculate transformation along path
@@ -398,7 +416,6 @@ void Path::writeJSON(QJsonObject &json) const {
     }
 
     QJsonObject destinationObject; destinationObject.insert("frameID", QString::fromStdString(dst));
-
 
     json.insert("01_source", sourceObject);
     json.insert("02_links", linkObjects);

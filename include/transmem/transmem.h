@@ -12,6 +12,7 @@
 #include <queue>
 #include <mutex>
 #include <functional>
+#include <QDateTime>
 
 #include "src/headers/typedefs.h"
 #include "src/headers/frameAndLink.h"
@@ -208,9 +209,12 @@ protected:
     mutable std::recursive_mutex lock;
 
     // JSON output
+    enum class OutputType { PATH, TRANSMEM };
+
     void writeJSON(QJsonObject &json) const;
-    void dumpJSONfile(const QString &path, const QJsonObject &json) const;
+    void dumpJSONfile(const QString &path, const QJsonObject &json, const OutputType& outputType) const;
     void dumpPathAsJSON(const Path &p) const;
+
 };
 
 #endif // TRANSMEM_H
