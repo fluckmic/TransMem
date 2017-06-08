@@ -87,7 +87,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
    // check if the rotation matrix is normal (det = 1/-1)
    double det = fabs(data[0]*data[4]*data[8]+data[1]*data[5]*data[6]+data[2]*data[3]*data[7]-
-                     data[2]*data[4]*data[6]-data[1]*data[3]*data[8]+data[0]*data[5]*data[7]);
+                     data[2]*data[4]*data[6]-data[1]*data[3]*data[8]-data[0]*data[5]*data[7]);
 
    if(det < 0.995 || det > 1.005)
        qWarning() << "Rotation Matrix is not normal.\n";
