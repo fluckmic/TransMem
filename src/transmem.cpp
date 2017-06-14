@@ -72,7 +72,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
         qWarning() << "Entry not stored since entry is to old.\n";
     }
 
-    this->dumpAsJSON();
+    //dumpAsJSON();
 
     return;
 }
@@ -281,8 +281,8 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
     if(!shortestPath(p))
         throw NoSuchLinkFoundException(srcFrame, destFrame);
 
-    dumpPathAsJSON(p);
-    dumpAsGraphML();
+    //dumpPathAsJSON(p);
+    //dumpAsGraphML();
 
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
@@ -397,6 +397,12 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
 
     return true;
  }
+
+ /****************************
+  * TRANSMEM QML INTERFACE   *
+  ****************************/
+
+
 
 /****************************
  * PATH                     *
