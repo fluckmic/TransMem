@@ -72,7 +72,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
         qWarning() << "Entry not stored since entry is to old.\n";
     }
 
-    //dumpAsJSON();
+    dumpAsJSON();
 
     return;
 }
@@ -428,4 +428,25 @@ void Path::writeJSON(QJsonObject &json) const {
     json.insert("02_links", linkObjects);
     json.insert("03_destination", destinationObject);
 
+}
+
+void TransMemQMLInterface::registerLinkNow(const QString& srcFrame, const QString& dstFrame, const QMatrix4x4& trans) {
+    registerLink(srcFrame.toStdString(), dstFrame.toStdString(), std::chrono::high_resolution_clock::now(), trans);
+}
+
+QMatrix4x4 TransMemQMLInterface::getLinkNow(const QString& srcFrame, const QString& dstFrame) const {
+    try {
+        return getLink(srcFrame.toStdString(), dstFrame.toStdString(), std::chrono::high_resolution_clock::now());
+    }
+    catch(NoSuchLinkFoundException e){}
+    return QMatrix4x4();
+}
+
+QMatrix4x4 TransMemQMLInterface::bestLink(const QString &srcFrame, const QString &dstFrame) const {
+    try {
+        Timestamp ts;
+        return getBestLink(srcFrame.toStdString(), dstFrame.toStdString(), ts);
+    }
+    catch (NoSuchLinkFoundException e){}
+    return QMatrix4x4();
 }

@@ -224,48 +224,11 @@ protected:
 class TransMemQMLInterface : public QObject, public TransMem {
     Q_OBJECT
 
+public:
+    Q_INVOKABLE void registerLinkNow(const QString& srcFrame, const QString& dstFrame, const QMatrix4x4& trans);
+    Q_INVOKABLE QMatrix4x4 getLinkNow(const QString& srcFrame, const QString& dstFrame) const;
+    Q_INVOKABLE QMatrix4x4 bestLink(const QString& srcFrame, const QString& dstFrame) const;
 
-    Q_PROPERTY(QMatrix4x4 orangeHouse2Camera READ getOrangeHouse2Camera WRITE setOrangeHouse2Camera)
-
-    //Q_PROPERTY(float center2CameraConf MEMBER center2CameraConf NOTIFY center2CameraConfUpdated)
-
-    Q_PROPERTY(QMatrix4x4 center2OrangeHouse READ getCenter2OrangeHouse NOTIFY changed)
-    Q_PROPERTY(QMatrix4x4 center2Camera READ getCenter2Camera WRITE setCenter2Camera NOTIFY changed)
-
-private:
-
-    float center2CameraConf = 0.;
-
-    QMatrix4x4 getCenter2OrangeHouse() {
-        try { return getLink("world_center", "orange_house", std::chrono::high_resolution_clock::now()); }
-        catch(NoSuchLinkFoundException e){}
-        return QMatrix4x4();    // just return the identity matrix if no link is present
-    }
-
-    QMatrix4x4 getCenter2Camera() {
-        try { return getLink("world_center", "camera", std::chrono::high_resolution_clock::now()); }
-        catch(NoSuchLinkFoundException e){}
-        return QMatrix4x4();     // just return the identity matrix if no link is present
-    }
-
-    QMatrix4x4 getOrangeHouse2Camera() {
-        try { return getLink("orange_house", "camera", std::chrono::high_resolution_clock::now()); }
-        catch(NoSuchLinkFoundException e){}
-        return QMatrix4x4();     // just return the identity matrix if no link is present
-    }
-
-    void setOrangeHouse2Camera(QMatrix4x4& orangeHouse2Camera){
-        registerLink("orange_house", "camera", std::chrono::high_resolution_clock::now(), orangeHouse2Camera);
-        emit changed();
-    }
-
-    void setCenter2Camera(QMatrix4x4& center2Camera){
-        registerLink("world_center", "camera", std::chrono::high_resolution_clock::now(), center2Camera);
-        emit changed();
-     }
-
-signals:
-        void changed();
 };
 
 #endif // TRANSMEM_H
