@@ -72,7 +72,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
         qWarning() << "Entry not stored since entry is to old.\n";
     }
 
-    dumpAsJSON();
+    //dumpAsJSON();
 
     return;
 }
@@ -273,8 +273,6 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to query for link if source frame is equal to destination frame.");
 
-    std::lock_guard<std::recursive_mutex> guard(lock);
-
     // search for shortest path between source frame and  destination frame
     Path p{srcFrame, destFrame};
 
@@ -309,12 +307,24 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to query for link if source frame is equal to destination frame.");
 
+    QMatrix4x4 trans;
+    Path p{srcFrame, destFrame};
+
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    // search for shortest path between source frame and  destination frame
-    Path p{srcFrame, destFrame};
-    if(!shortestPath(p))
+    if(!bestLink(trans, tstamp, p))
         throw NoSuchLinkFoundException(srcFrame, destFrame);
+
+    return trans;
+}
+
+bool TransMem::bestLink(QMatrix4x4 &trans, Timestamp &tstamp, Path &p) const {
+
+    // we asume the lock is already aquired
+
+    // search for shortest path between source frame and  destination frame
+    if(!shortestPath(p))
+        return false;
 
     // evaluate best point in time
     calculateBestPointInTime(p, tstamp);
@@ -328,8 +338,59 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     QMatrix4x4 ret(rot);
     ret(0,3) = t.translation.x(); ret(1,3) = t.translation.y(); ret(2,3) = t.translation.z();
 
-    return ret;
+    trans = ret;
 
+    return true;
+}
+
+QMatrix4x4 TransMem::getBestLinkCached(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) {
+
+    std::string linkID = srcFrame+destFrame;
+
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    auto itr2CachedBestLink = cachedBestLinks.find(linkID);
+
+    auto itr2CachedBestLinkRev = cachedBestLinks.find(destFrame+srcFrame);
+
+    // if the best link is cached but in the other direction we call the method again and invert its result
+    if(itr2CachedBestLinkRev != cachedBestLinks.end())
+        return getBestLinkCached(destFrame, srcFrame, tstamp).inverted();
+
+    // otherwise we check if recalculation is necessary
+    bool recalculation = true;
+
+    // the link is already cached, check if an update is necessary
+    if(itr2CachedBestLink != cachedBestLinks.end()){
+
+    Timestamp tstampBestLinkCalc = (*itr2CachedBestLink).second.first;
+    Path pathBestLink = (*itr2CachedBestLink).second.second;
+
+    // the link is just recalculated if every link was updated in the mean time
+    for(Link& l : pathBestLink.links)
+        recalculation = recalculation && (l.lastTimeUpdated > tstampBestLinkCalc);
+    }
+
+    // do the recalculation
+    if(recalculation){
+
+        Path path{srcFrame, destFrame};
+        QMatrix4x4 newTransformation;
+
+        if(!bestLink(newTransformation, tstamp, path))
+               throw NoSuchLinkFoundException(srcFrame, destFrame);
+
+        cachedBestLinks.erase(linkID);
+        cachedBestTransformations.erase(linkID);
+
+        cachedBestLinks.insert({linkID,{std::chrono::high_resolution_clock::now(), path}});
+        cachedBestTransformations.insert({linkID, newTransformation});
+
+        return newTransformation;
+    }
+    else{
+        return cachedBestTransformations.at(linkID);
+    }
 }
 
  bool TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation) const {
@@ -398,12 +459,6 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     return true;
  }
 
- /****************************
-  * TRANSMEM QML INTERFACE   *
-  ****************************/
-
-
-
 /****************************
  * PATH                     *
  ****************************/
@@ -430,6 +485,10 @@ void Path::writeJSON(QJsonObject &json) const {
 
 }
 
+/****************************
+ * TRANSMEM QML INTERFACE   *
+ ****************************/
+
 void TransMemQMLInterface::registerLinkNow(const QString& srcFrame, const QString& dstFrame, const QMatrix4x4& trans) {
     registerLink(srcFrame.toStdString(), dstFrame.toStdString(), std::chrono::high_resolution_clock::now(), trans);
 }
@@ -442,10 +501,19 @@ QMatrix4x4 TransMemQMLInterface::getLinkNow(const QString& srcFrame, const QStri
     return QMatrix4x4();
 }
 
-QMatrix4x4 TransMemQMLInterface::bestLink(const QString &srcFrame, const QString &dstFrame) const {
+QMatrix4x4 TransMemQMLInterface::getLinkBest(const QString &srcFrame, const QString &dstFrame) const {
     try {
         Timestamp ts;
         return getBestLink(srcFrame.toStdString(), dstFrame.toStdString(), ts);
+    }
+    catch (NoSuchLinkFoundException e){}
+    return QMatrix4x4();
+}
+
+QMatrix4x4 TransMemQMLInterface::getLinkBestCached(const QString &srcFrame, const QString &dstFrame) {
+    try {
+        Timestamp ts;
+        return getBestLinkCached(srcFrame.toStdString(), dstFrame.toStdString(), ts);
     }
     catch (NoSuchLinkFoundException e){}
     return QMatrix4x4();

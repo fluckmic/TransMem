@@ -44,6 +44,8 @@ public:
 
     double weight = 1.;
 
+    Timestamp lastTimeUpdated;
+
     void writeJSON(QJsonObject &json) const;
 
 protected:
@@ -54,7 +56,7 @@ protected:
 
     void invertTransformation(StampedTransformation &stampedTransformation) const;
 
-     TransformationBuffer buf;
+    TransformationBuffer buf;
 };
 
 

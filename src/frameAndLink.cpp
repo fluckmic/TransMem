@@ -23,7 +23,12 @@ bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stam
     if(child->frameID == srcFrame)
         invertTransformation(stampedTransformation);
 
-    return buf.addEntry(stampedTransformation);
+    if(buf.addEntry(stampedTransformation)){
+        lastTimeUpdated = std::chrono::high_resolution_clock::now();
+        return true;
+    }
+    else
+        return false;
 }
 
 bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const{

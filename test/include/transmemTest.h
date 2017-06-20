@@ -18,6 +18,7 @@ class transmemTest : public QObject {
     void inversionTestwithAmbigousPath();
     void pruningTest();
     void bestPointInTimeTest();
+    void cachedBestLinksTest();
 };
 
 

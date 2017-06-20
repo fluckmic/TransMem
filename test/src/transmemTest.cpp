@@ -205,6 +205,41 @@ void transmemTest::bestPointInTimeTest(){
     qInfo() << "PASS   : Test 2";
 }
 
+void transmemTest::cachedBestLinksTest(){
+
+    /* Simple test to check the main functionality of the caching function */
+
+    TransMem tm; FrameID src, dst; QMatrix4x4 res; Timestamp ts;
+
+    QMatrix4x4 trans1 =  MatHelper::getRandTransMatrix();
+    QMatrix4x4 trans2 =  MatHelper::getRandTransMatrix();
+
+    src = "f1"; dst = "f27";
+
+    Timestamp tsInsertion = std::chrono::high_resolution_clock::now();
+
+    tm.registerLink(src, dst, tsInsertion, trans1);
+
+    for(int i = 0; i < 5; i++)
+       QVERIFY(MatHelper::matrixComparator(trans1, tm.getBestLinkCached(src, dst, ts)));
+
+    tm.registerLink(src, dst, tsInsertion - std::chrono::milliseconds(13), trans2);
+
+    QVERIFY(MatHelper::matrixComparator(trans2, tm.getBestLinkCached(src, dst, ts)));
+    qInfo() << "PASS   : Test 1";
+
+    dst = "f11";
+
+    tm.registerLink(src, dst, tsInsertion + std::chrono::milliseconds(32), trans1);
+
+    QVERIFY(MatHelper::matrixComparator(trans1, tm.getBestLinkCached(src,dst, ts)));
+
+    for(int i = 0; i < 5; i++)
+       QVERIFY(MatHelper::matrixComparator(trans1, tm.getBestLinkCached(src, dst, ts)));
+
+    qInfo() << "PASS   : Test 1";
+}
+
 
 void transmemTest::pruningTest(){
 
