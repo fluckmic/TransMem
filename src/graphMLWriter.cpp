@@ -1,11 +1,14 @@
 #include "src/headers/graphMLWriter.h"
 
-bool GraphMLWriter::write(const TransMem &tm) {
+bool GraphMLWriter::write(const QString &path, const TransMem &tm) {
 
-    QFile file(QString::fromStdString("TransMemDump.graphml"));
+    QDateTime currentTime = QDateTime::currentDateTime();
+    QString suffixFilename = "_graphML_dump.graphml";
+
+    QFile file(path + currentTime.toString("ddMMyy_HHmmss") + suffixFilename);
 
     if(!file.open(QFile::WriteOnly | QFile::Text)){
-        // TODO: error msg
+        qDebug() << file.errorString();
         return false;
     }
 
@@ -23,8 +26,8 @@ bool GraphMLWriter::write(const TransMem &tm) {
     xml.writeAttribute("edgedefault", "directed");
 
     // add frames
-    for(Frame f : tm.frames)
-       addNode(QString::fromStdString(f.frameID));
+    for(auto f : tm.frameID2Frame)
+       addNode(QString::fromStdString(f.second.frameID));
 
     // add links
     for(Link l : tm.links){
@@ -39,7 +42,7 @@ bool GraphMLWriter::write(const TransMem &tm) {
 
     file.close();
     if(file.error()){
-        // TODO: error msg
+        qDebug() << file.errorString();
         return false;
     }
 

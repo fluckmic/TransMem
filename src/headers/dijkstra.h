@@ -12,7 +12,7 @@ struct Path;
 class Dijkstra
 {
 public:
-    Dijkstra(std::unordered_map<FrameID, Frame*> frameID2Frame)
+    Dijkstra(std::unordered_map<FrameID, Frame> &frameID2Frame)
     : frameID2Frame(frameID2Frame)
     {}
 
@@ -27,7 +27,7 @@ protected:
     bool set2ShortestRemaining();
     void updateDistance(Frame *adjFrame, double w);
 
-    std::unordered_map<FrameID, Frame*> frameID2Frame;
+    std::unordered_map<FrameID, Frame> &frameID2Frame;
     Frame *ptr2CurrFrame{nullptr};
 
 };

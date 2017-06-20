@@ -44,6 +44,8 @@ public:
 
     double weight = 1.;
 
+    Timestamp lastTimeUpdated;
+
     void writeJSON(QJsonObject &json) const;
 
 protected:
@@ -54,7 +56,7 @@ protected:
 
     void invertTransformation(StampedTransformation &stampedTransformation) const;
 
-     TransformationBuffer buf;
+    TransformationBuffer buf;
 };
 
 
@@ -82,10 +84,6 @@ public:
 
     void writeJSON(QJsonObject &json) const;
 
-    // needed for dijkstra
-    double distance{0};
-    Frame* predecessor{nullptr};
-    bool active{true};
 
 };
 

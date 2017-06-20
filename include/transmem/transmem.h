@@ -12,6 +12,7 @@
 #include <queue>
 #include <mutex>
 #include <functional>
+#include <QDateTime>
 
 #include "src/headers/typedefs.h"
 #include "src/headers/frameAndLink.h"
@@ -187,6 +188,8 @@ public:
      */
     QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const;
 
+    QMatrix4x4 getBestLinkCached(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp);
+
     void dumpAsJSON() const;
 
     void dumpAsGraphML() const;
@@ -199,19 +202,41 @@ protected:
 
     bool calculateTransformation(const Path &path, StampedTransformation &e) const;
 
-    std::unordered_map<FrameID, Frame*> frameID2Frame;
+    std::unordered_map<FrameID, Frame> frameID2Frame;
 
-    std::deque<Frame> frames;
     std::deque<Link> links;
+
+    std::unordered_map< std::string, std::pair< Timestamp, Path > > cachedBestLinks;
+    std::unordered_map< std::string, QMatrix4x4 > cachedBestTransformations;
 
     DurationSec storageTime{10};
 
     mutable std::recursive_mutex lock;
 
     // JSON output
+    enum class OutputType { PATH, TRANSMEM };
+
     void writeJSON(QJsonObject &json) const;
-    void dumpJSONfile(const QString &path, const QJsonObject &json) const;
+    void dumpJSONfile(const QString &path, const QJsonObject &json, const OutputType& outputType) const;
     void dumpPathAsJSON(const Path &p) const;
+
+    bool bestLink(QMatrix4x4 &trans, Timestamp &tstamp, Path &p) const;
+};
+
+/****************************
+ * TRANSMEM QML INTERFACE   *
+ ****************************/
+
+class TransMemQMLInterface : public QObject, public TransMem {
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE QMatrix4x4 getLinkBestCached(const QString& srcFrame, const QString& dstFrame);
+    Q_INVOKABLE void registerLinkNow(const QString& srcFrame, const QString& dstFrame, const QMatrix4x4& trans);
+
+    Q_INVOKABLE QMatrix4x4 getLinkNow(const QString& srcFrame, const QString& dstFrame) const;
+    Q_INVOKABLE QMatrix4x4 getLinkBest(const QString& srcFrame, const QString& dstFrame) const;
+
 };
 
 #endif // TRANSMEM_H

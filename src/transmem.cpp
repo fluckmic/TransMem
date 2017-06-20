@@ -20,7 +20,13 @@ const char* NoSuchLinkFoundException::what() const throw(){
 
 void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans){
 
-    // TODO: check if normalized rotation quaternion and pure translation quaternion?!
+    // check if rotation quaternion is normalized
+    if( qrot.length() < 0.995 || qrot.length() > 1.005)
+        qWarning() << "Rotation quaternion is not normalized.\n";
+
+    // check if translation quaternion is pure
+    if(qtrans.scalar() != 0.)
+        qWarning() << "Translation quaternion is not pure.\n";
 
     std::lock_guard<std::recursive_mutex> guard(lock);
 
@@ -33,23 +39,21 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
     // if a frame does not exist, create it
     if(iter2SrcFrame == frameID2Frame.end()){
 
-        frames.emplace_back(Frame{srcFrame});
-        ptr2SrcFrame = &frames.back();
-        frameID2Frame.insert({srcFrame, ptr2SrcFrame});
+        frameID2Frame.insert({srcFrame, Frame{srcFrame}});
+        ptr2SrcFrame = &(*frameID2Frame.find(srcFrame)).second;
 
     }
     else
-        ptr2SrcFrame = (*iter2SrcFrame).second;
+        ptr2SrcFrame = &(*iter2SrcFrame).second;
 
     if(iter2DstFrame == frameID2Frame.end()){
 
-        frames.emplace_back(Frame{destFrame});
-        ptr2DstFrame = &frames.back();
-        frameID2Frame.insert({destFrame, ptr2DstFrame});
+        frameID2Frame.insert({destFrame, Frame{destFrame}});
+        ptr2DstFrame = &(*frameID2Frame.find(destFrame)).second;
 
     }
     else
-        ptr2DstFrame = (*iter2DstFrame).second;
+        ptr2DstFrame = &(*iter2DstFrame).second;
 
     // check if a link between srcFrame and destFrame exists
     Link* ptr2Link = nullptr;
@@ -65,8 +69,10 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
     // add the transformation to the link
     if(!ptr2Link->addTransformation(srcFrame, StampedTransformation{tstamp, qrot, qtrans})){
-        // TODO debug message: entry not stored since entry is to old
+        qWarning() << "Entry not stored since entry is to old.\n";
     }
+
+    //dumpAsJSON();
 
     return;
 }
@@ -79,7 +85,12 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
    QMatrix3x3 rM(data);
 
-   // TODO: check if the rotation matrix is normal, emit a warning if not
+   // check if the rotation matrix is normal (det = 1/-1)
+   double det = fabs(data[0]*data[4]*data[8]+data[1]*data[5]*data[6]+data[2]*data[3]*data[7]-
+                     data[2]*data[4]*data[6]-data[1]*data[3]*data[8]-data[0]*data[5]*data[7]);
+
+   if(det < 0.995 || det > 1.005)
+       qWarning() << "Rotation Matrix is not normal.\n";
 
    registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)));
 
@@ -88,9 +99,9 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 void TransMem::writeJSON(QJsonObject &json) const {
 
     QJsonArray frameObjects;
-    for(Frame f: frames){
+    for(auto f: frameID2Frame){
         QJsonObject frameObject;
-        f.writeJSON(frameObject);
+        f.second.writeJSON(frameObject);
         frameObjects.append(frameObject);
     }
 
@@ -108,31 +119,119 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 bool TransMem::shortestPath(Path &path) const {
 
-    Dijkstra dijkstra(frameID2Frame);
-    return dijkstra.calculateShortestPath(path);
+    // check if the source frame exists
+    if(frameID2Frame.find(path.src) == frameID2Frame.end())
+        return false;
+
+    // check if the destination frame exists
+    auto iter2DstFrame = frameID2Frame.find(path.dst);
+    if(iter2DstFrame == frameID2Frame.end())
+        return false;
+
+   typedef std::pair<double, Frame*> distAndFramePtrPair;
+
+   std::priority_queue< distAndFramePtrPair, std::vector<distAndFramePtrPair>, std::greater<distAndFramePtrPair> > prQ;
+
+   std::unordered_map< FrameID, double > distances;
+   std::unordered_map< FrameID, Frame* > predecessors;
+
+   // initialize temporary datastructures
+   for(std::pair<FrameID, Frame> f : frameID2Frame){
+       distances.insert({f.first, std::numeric_limits<double>::infinity()});
+       predecessors.insert({f.first, nullptr});
+   }
+
+   // insert destination into priority queue and set distance to zero / predecessor to null
+   prQ.emplace(distAndFramePtrPair{0, (Frame*) (&(*frameID2Frame.find(path.dst)).second)});
+   distances.at(path.dst) = 0;
+
+   // search shortest path
+   while(!prQ.empty()){
+
+    Frame* currPtr2Frame = prQ.top().second;
+    double distanceViaCurr = prQ.top().first;
+
+    // we found the shortest path
+    if(currPtr2Frame->frameID == path.src){
+
+        // path has at least one link, since it is not possible to query
+        // for a transformation between the same frame
+        FrameID frameIDPred = predecessors.at(path.src)->frameID;
+        Link* link2Pred = nullptr;
+        currPtr2Frame->connectionTo(frameIDPred, link2Pred);
+        path.links.push_back(std::ref(*link2Pred));
+
+        while(true){
+
+            currPtr2Frame = predecessors.at(currPtr2Frame->frameID);
+
+            if(!predecessors.at(currPtr2Frame->frameID))
+                return true;    // path complete
+
+            frameIDPred = predecessors.at(currPtr2Frame->frameID)->frameID;
+            currPtr2Frame->connectionTo(frameIDPred, link2Pred);
+            path.links.push_back(std::ref(*link2Pred));
+
+        }
+
+        return true;
+    }
+
+    prQ.pop();
+
+    /*******************/
+    // helper lambda
+
+    auto updateDistance = [this, &prQ, &distances, &predecessors, &currPtr2Frame](FrameID adjFrameID, double alternativeDist){
+        if(alternativeDist < distances.at(adjFrameID)){
+            distances.at(adjFrameID) = alternativeDist;
+            predecessors.at(adjFrameID) = currPtr2Frame;
+            prQ.emplace(distAndFramePtrPair{alternativeDist, (Frame*) (&(*frameID2Frame.find(adjFrameID)).second)});
+        }
+    };
+    /*******************/
+
+    // update distances
+    for(Link* l : currPtr2Frame->parents)
+        updateDistance(l->parent->frameID, distanceViaCurr + l->weight);
+
+    for(Link* l : currPtr2Frame->children)
+        updateDistance(l->child->frameID, distanceViaCurr + l->weight);
+
+   }
+
+    // no path found
+    return false;
 
 }
 
 void TransMem::dumpAsJSON() const {
 
-    // TODO: add date and time to filename of dump
-
+    QString path = "";
     QJsonObject transmemObject;
 
     std::lock_guard<std::recursive_mutex> guard(lock);
 
     writeJSON(transmemObject);
 
-    dumpJSONfile("TransMemDump", transmemObject);
+    dumpJSONfile(path, transmemObject, OutputType::TRANSMEM);
 
     return;
 }
 
-void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json) const {
+void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json, const OutputType &outputType) const {
 
-    QFile file(path+".json");
+    QDateTime currentTime = QDateTime::currentDateTime();
+    QString suffixFilename;
+
+    switch(outputType){
+        case OutputType::PATH:          suffixFilename = "_path_dump.json"; break;
+        case OutputType::TRANSMEM:      suffixFilename = "_transmem_dump.json"; break;
+    }
+
+    QFile file( path + currentTime.toString("ddMMyy_HHmmss") + suffixFilename);
     if(!file.open(QIODevice::WriteOnly)){
-        // TODO: error handling
+        qDebug() << file.errorString();
         return;
     }
 
@@ -141,7 +240,7 @@ void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json) const 
 
     file.close();
     if(file.error()){
-        // TODO: error handling
+        qDebug() << file.errorString();
         return;
     }
 
@@ -149,23 +248,23 @@ void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json) const 
 
 void TransMem::dumpPathAsJSON(const Path &p) const{
 
-    // TODO:: add date and time to filname of dump
-
+   QString path = "";
    QJsonObject pathObject;
 
    std::lock_guard<std::recursive_mutex> guard(lock);
    p.writeJSON(pathObject);
 
-   dumpJSONfile("PathDump", pathObject);
+   dumpJSONfile(path, pathObject, OutputType::PATH);
 
 }
 
 void TransMem::dumpAsGraphML() const {
 
    GraphMLWriter writer;
+   QString path = "";
 
    std::lock_guard<std::recursive_mutex> guard(lock);
-   writer.write(*this);
+   writer.write(path, *this);
 
 }
 
@@ -174,17 +273,14 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to query for link if source frame is equal to destination frame.");
 
-    std::lock_guard<std::recursive_mutex> guard(lock);
-
     // search for shortest path between source frame and  destination frame
     Path p{srcFrame, destFrame};
 
     if(!shortestPath(p))
         throw NoSuchLinkFoundException(srcFrame, destFrame);
 
-    dumpPathAsJSON(p);
-
-    dumpAsGraphML();
+    //dumpPathAsJSON(p);
+    //dumpAsGraphML();
 
     // calculate transformation along path
     StampedTransformation t{tstamp, QQuaternion(), QQuaternion(0,0,0,0)};
@@ -199,6 +295,7 @@ QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, 
 
 }
 
+// WARNING: TEST ME!
 QMatrix4x4 TransMem::getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const{
 
     return getLink(fixFrame, destFrame, tstamp2) * getLink(srcFrame, fixFrame, tstamp1);
@@ -210,12 +307,24 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to query for link if source frame is equal to destination frame.");
 
+    QMatrix4x4 trans;
+    Path p{srcFrame, destFrame};
+
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    // search for shortest path between source frame and  destination frame
-    Path p{srcFrame, destFrame};
-    if(!shortestPath(p))
+    if(!bestLink(trans, tstamp, p))
         throw NoSuchLinkFoundException(srcFrame, destFrame);
+
+    return trans;
+}
+
+bool TransMem::bestLink(QMatrix4x4 &trans, Timestamp &tstamp, Path &p) const {
+
+    // we asume the lock is already aquired
+
+    // search for shortest path between source frame and  destination frame
+    if(!shortestPath(p))
+        return false;
 
     // evaluate best point in time
     calculateBestPointInTime(p, tstamp);
@@ -229,8 +338,59 @@ QMatrix4x4 TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFra
     QMatrix4x4 ret(rot);
     ret(0,3) = t.translation.x(); ret(1,3) = t.translation.y(); ret(2,3) = t.translation.z();
 
-    return ret;
+    trans = ret;
 
+    return true;
+}
+
+QMatrix4x4 TransMem::getBestLinkCached(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) {
+
+    std::string linkID = srcFrame+destFrame;
+
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    auto itr2CachedBestLink = cachedBestLinks.find(linkID);
+
+    auto itr2CachedBestLinkRev = cachedBestLinks.find(destFrame+srcFrame);
+
+    // if the best link is cached but in the other direction we call the method again and invert its result
+    if(itr2CachedBestLinkRev != cachedBestLinks.end())
+        return getBestLinkCached(destFrame, srcFrame, tstamp).inverted();
+
+    // otherwise we check if recalculation is necessary
+    bool recalculation = true;
+
+    // the link is already cached, check if an update is necessary
+    if(itr2CachedBestLink != cachedBestLinks.end()){
+
+    Timestamp tstampBestLinkCalc = (*itr2CachedBestLink).second.first;
+    Path pathBestLink = (*itr2CachedBestLink).second.second;
+
+    // the link is just recalculated if every link was updated in the mean time
+    for(Link& l : pathBestLink.links)
+        recalculation = recalculation && (l.lastTimeUpdated > tstampBestLinkCalc);
+    }
+
+    // do the recalculation
+    if(recalculation){
+
+        Path path{srcFrame, destFrame};
+        QMatrix4x4 newTransformation;
+
+        if(!bestLink(newTransformation, tstamp, path))
+               throw NoSuchLinkFoundException(srcFrame, destFrame);
+
+        cachedBestLinks.erase(linkID);
+        cachedBestTransformations.erase(linkID);
+
+        cachedBestLinks.insert({linkID,{std::chrono::high_resolution_clock::now(), path}});
+        cachedBestTransformations.insert({linkID, newTransformation});
+
+        return newTransformation;
+    }
+    else{
+        return cachedBestTransformations.at(linkID);
+    }
 }
 
  bool TransMem::calculateTransformation(const Path &path, StampedTransformation &stampedTransformation) const {
@@ -308,7 +468,7 @@ void Path::writeJSON(QJsonObject &json) const {
     QJsonObject sourceObject; sourceObject.insert("frameID", QString::fromStdString(src));
 
     QJsonArray linkObjects;
-    for(Link l : links){
+    for(Link& l : links){
         QJsonObject linkObject;
         QJsonObject parentObject; parentObject.insert("frameID", QString::fromStdString(l.parent->frameID));
         linkObject.insert("01_parent", parentObject);
@@ -319,9 +479,42 @@ void Path::writeJSON(QJsonObject &json) const {
 
     QJsonObject destinationObject; destinationObject.insert("frameID", QString::fromStdString(dst));
 
-
     json.insert("01_source", sourceObject);
     json.insert("02_links", linkObjects);
     json.insert("03_destination", destinationObject);
 
+}
+
+/****************************
+ * TRANSMEM QML INTERFACE   *
+ ****************************/
+
+void TransMemQMLInterface::registerLinkNow(const QString& srcFrame, const QString& dstFrame, const QMatrix4x4& trans) {
+    registerLink(srcFrame.toStdString(), dstFrame.toStdString(), std::chrono::high_resolution_clock::now(), trans);
+}
+
+QMatrix4x4 TransMemQMLInterface::getLinkNow(const QString& srcFrame, const QString& dstFrame) const {
+    try {
+        return getLink(srcFrame.toStdString(), dstFrame.toStdString(), std::chrono::high_resolution_clock::now());
+    }
+    catch(NoSuchLinkFoundException e){}
+    return QMatrix4x4();
+}
+
+QMatrix4x4 TransMemQMLInterface::getLinkBest(const QString &srcFrame, const QString &dstFrame) const {
+    try {
+        Timestamp ts;
+        return getBestLink(srcFrame.toStdString(), dstFrame.toStdString(), ts);
+    }
+    catch (NoSuchLinkFoundException e){}
+    return QMatrix4x4();
+}
+
+QMatrix4x4 TransMemQMLInterface::getLinkBestCached(const QString &srcFrame, const QString &dstFrame) {
+    try {
+        Timestamp ts;
+        return getBestLinkCached(srcFrame.toStdString(), dstFrame.toStdString(), ts);
+    }
+    catch (NoSuchLinkFoundException e){}
+    return QMatrix4x4();
 }
