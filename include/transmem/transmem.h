@@ -14,11 +14,11 @@
 #include <functional>
 #include <QDateTime>
 
-#include "src/headers/typedefs.h"
-#include "src/headers/frameAndLink.h"
-#include "src/headers/stampedTransformation.h"
-#include "src/headers/graphMLWriter.h"
-#include "src/headers/dijkstra.h"
+#include "../../src/headers/typedefs.h"
+#include "../../src/headers/frameAndLink.h"
+#include "../../src/headers/stampedTransformation.h"
+#include "../../src/headers/graphMLWriter.h"
+#include "../../src/headers/dijkstra.h"
 
 
 /****************************

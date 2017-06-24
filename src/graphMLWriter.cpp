@@ -1,4 +1,4 @@
-#include "src/headers/graphMLWriter.h"
+#include "../src/headers/graphMLWriter.h"
 
 bool GraphMLWriter::write(const QString &path, const TransMem &tm) {
 
