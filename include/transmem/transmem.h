@@ -13,6 +13,7 @@
 #include <mutex>
 #include <functional>
 #include <QDateTime>
+#include "Eigen/Eigenvalues"
 
 #include "../../src/headers/typedefs.h"
 #include "../../src/headers/frameAndLink.h"
@@ -237,6 +238,12 @@ public:
     Q_INVOKABLE QMatrix4x4 getLinkNow(const QString& srcFrame, const QString& dstFrame) const;
     Q_INVOKABLE QMatrix4x4 getLinkBest(const QString& srcFrame, const QString& dstFrame) const;
 
+    Q_INVOKABLE QMatrix4x4 getInterpolation(const QMatrix4x4 &m1, const QMatrix4x4 &m2, const double ratio) const;
+
+    Q_INVOKABLE QMatrix4x4 toRotQuatProduct(const QMatrix4x4& m) const;
+    Q_INVOKABLE QVector3D toTransVect(const QMatrix4x4 &m) const;
+    Q_INVOKABLE QQuaternion getLargestEigenVecAsQuaternion(const QMatrix4x4&  m);
+    Q_INVOKABLE QMatrix4x4 toTransformationMatrix(const QQuaternion &rot, const QVector3D &trans);
 };
 
 #endif // TRANSMEM_H
