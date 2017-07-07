@@ -373,7 +373,6 @@ QMatrix4x4 TransMem::getBestLinkCached(const FrameID &srcFrame, const FrameID &d
 
     // do the recalculation
     if(recalculation){
-
         Path path{srcFrame, destFrame};
         QMatrix4x4 newTransformation;
 
@@ -508,6 +507,73 @@ QMatrix4x4 TransMemQMLInterface::getLinkBest(const QString &srcFrame, const QStr
     }
     catch (NoSuchLinkFoundException e){}
     return QMatrix4x4();
+}
+
+QMatrix4x4 TransMemQMLInterface::getInterpolation(const QMatrix4x4 &m1, const QMatrix4x4 &m2, const double ratio) const {
+
+    if(ratio <= 0) return m1;
+    if(ratio >= 1) return m2;
+
+    float dataM1[]{m1(0,0),m1(0,1),m1(0,2),m1(1,0),m1(1,1),m1(1,2),m1(2,0),m1(2,1),m1(2,2)}; QMatrix3x3 rM1(dataM1);
+    float dataM2[]{m2(0,0),m2(0,1),m2(0,2),m2(1,0),m2(1,1),m2(1,2),m2(2,0),m2(2,1),m2(2,2)}; QMatrix3x3 rM2(dataM2);
+
+    // spherical interpolation for the rotation
+    QQuaternion rot = QQuaternion::slerp(QQuaternion::fromRotationMatrix(rM1), QQuaternion::fromRotationMatrix(rM2), ratio);
+    // linear interpolation for the translation
+    QQuaternion trans = QQuaternion(0, m1(0,3), m1(1,3), m1(2,3))*(1.-ratio) + QQuaternion(0, m2(0,3), m2(1,3), m2(2,3))*ratio;
+
+    // convert to QMatrix4x4
+    QMatrix4x4 ret(rot.toRotationMatrix()); ret(0,3) = trans.x(); ret(1,3) = trans.y(); ret(2,3) = trans.z();
+
+    return ret;
+}
+
+QQuaternion TransMemQMLInterface::getLargestEigenVecAsQuaternion(const QMatrix4x4& m){
+
+    Eigen::Matrix4f A;
+    A << m(0,0) , m(0,1) , m(0,2) , m(0,3)
+        , m(1,0) , m(1,1) , m(1,2) , m(1,3)
+        , m(2,0) , m(2,1) , m(2,2) , m(2,3)
+        , m(3,0) , m(3,1) , m(3,2) , m(3,3);
+
+    Eigen::EigenSolver<Eigen::Matrix4f> ces;
+    ces.compute(A);
+
+
+    Eigen::Vector4cf eigenVec = ces.eigenvectors().col(0);
+    double eigenVal = ((std::complex<float>) ces.eigenvalues()[0]).real();
+    for(unsigned int i = 1; i < 4; i++)
+        if(eigenVal < ((std::complex<float>) ces.eigenvalues()[i]).real()){
+            eigenVal = ((std::complex<float>) ces.eigenvalues()[i]).real();
+            eigenVec = ces.eigenvectors().col(i);
+        }
+
+    return QQuaternion( ((std::complex<float>) eigenVec(0)).real(),
+                        ((std::complex<float>) eigenVec(1)).real(),
+                        ((std::complex<float>) eigenVec(2)).real(),
+                        ((std::complex<float>) eigenVec(3)).real() );
+}
+
+QMatrix4x4 TransMemQMLInterface::toRotQuatProduct(const QMatrix4x4& m) const {
+
+    float dataM1[]{m(0,0),m(0,1),m(0,2),m(1,0),m(1,1),m(1,2),m(2,0),m(2,1),m(2,2)}; QMatrix3x3 rM1(dataM1);
+
+    QQuaternion q = QQuaternion::fromRotationMatrix(rM1);
+
+    return QMatrix4x4(  q.scalar()*q.scalar(),  q.scalar()*q.x(),   q.scalar()*q.y(),   q.scalar()*q.x(),
+                             q.x()*q.scalar(),       q.x()*q.x(),        q.x()*q.y(),        q.x()*q.z(),
+                             q.y()*q.scalar(),       q.y()*q.x(),        q.y()*q.y(),        q.y()*q.z(),
+                             q.z()*q.scalar(),       q.z()*q.x(),        q.z()*q.y(),        q.z()*q.z()    );
+}
+
+QMatrix4x4 TransMemQMLInterface::toTransformationMatrix(const QQuaternion& rot, const QVector3D& trans){
+    QMatrix4x4 m = QMatrix4x4(rot.toRotationMatrix());
+    m(0,3) = trans.x(); m(1,3) = trans.y(); m(2,3) = trans.z();
+    return m;
+}
+
+QVector3D TransMemQMLInterface::toTransVect(const QMatrix4x4& m) const {
+    return QVector3D(m(0,3),m(1,3),m(2,3));
 }
 
 QMatrix4x4 TransMemQMLInterface::getLinkBestCached(const QString &srcFrame, const QString &dstFrame) {

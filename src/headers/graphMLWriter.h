@@ -3,9 +3,9 @@
 
 #include <QXmlStreamWriter>
 #include <QFile>
-#include "src/headers/typedefs.h"
+#include "../../src/headers/typedefs.h"
 
-#include "transmem/transmem.h"
+#include "transmem/include/transmem/transmem.h"
 
 class TransMem;
 
