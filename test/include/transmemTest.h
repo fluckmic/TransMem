@@ -19,6 +19,7 @@ class transmemTest : public QObject {
     void pruningTest();
     void bestPointInTimeTest();
     void cachedBestLinksTest();
+    void linkQualityTest();
 };
 
 

@@ -243,6 +243,56 @@ void transmemTest::cachedBestLinksTest(){
     qInfo() << "PASS   : Test 1";
 }
 
+void transmemTest::linkQualityTest() {
+
+    typedef std::pair< linkPair, double > linkQualityPair;
+
+    TransMem tm1; FrameID src, dst;
+    Timestamp tStamp = std::chrono::high_resolution_clock::now();
+
+    std::vector<linkQualityPair> linkQualityPairs = {
+        {{"f1","f2"},1},{{"f2","f3"},11},{{"f3","f4"},10},{{"f5","f4"},9},{{"f6","f5"},12},
+        {{"f6","f7"},13},{{"f10","f7"},15},{{"f10","f8"},16},{{"f9","f10"},14},{{"f9","f11"},8},
+        {{"f11","f5"},7},{{"f11","f2"},6},{{"f11","f12"},2},{{"f2","f12"},5},{{"f13","f12"},7},
+        {{"f13","f11"},8},{{"f1","f14"},2},{{"f14","f12"},4},{{"f14","f15"},3}
+    };
+    for(linkQualityPair lq : linkQualityPairs)
+        tm1.registerLink(lq.first.first, lq.first.second, tStamp, MatHelper::getRandTransMatrix(), lq.second);
+
+    // Test 1
+    src = "f2"; dst = "f4";
+    StampedAndRatedTransformation res = tm1.getLink(src, dst, tStamp);
+    QVERIFY(res.avgLinkQuality == 10.5);
+    qInfo() << "PASS   : Test 1";
+
+    // Test 2
+    src = "f8"; dst = "f1";
+    res = tm1.getLink(src, dst, tStamp);
+    QVERIFY(res.avgLinkQuality == 9);
+    qInfo() << "PASS   : Test 2";
+
+    // Test 3
+    // updates without quality do not change the quality of the transformation
+    tm1.registerLink("f2", "f1", tStamp, MatHelper::getRandTransMatrix());
+    res = tm1.getLink(src, dst, tStamp);
+    QVERIFY(res.avgLinkQuality == 9);
+    qInfo() << "PASS   : Test 3";
+
+    // Test 4
+    // updates with quality do change the quality of the transformation
+    tm1.registerLink("f2","f11", tStamp, MatHelper::getRandTransMatrix(), 11);
+    res = tm1.getLink(src, dst, tStamp);
+    QVERIFY(res.avgLinkQuality == 10);
+    qInfo() << "PASS   : Test 4";
+
+    // Test 5
+    // quality of a single link
+    src = "f5"; dst = "f11";
+    res = tm1.getLink(src, dst, tStamp);
+    QVERIFY(res.avgLinkQuality == 7);
+    qInfo() << "PASS   : Test 5";
+}
+
 
 void transmemTest::pruningTest(){
 

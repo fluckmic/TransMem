@@ -22,10 +22,11 @@ friend class GMLWriter;
 
 public:
 
-    Link(Frame *const parent, Frame *const child, const DurationSec &storageTime)
+    Link(Frame *const parent, Frame *const child, const DurationSec &storageTime, const double &quality)
     : parent{parent}
     , child(child)
     , buf(storageTime)
+    , quality(quality)
     {}
 
     bool oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const;
@@ -43,6 +44,7 @@ public:
     Frame *const child;
 
     double weight = 1.;
+    double quality;
 
     Timestamp lastTimeUpdated;
 

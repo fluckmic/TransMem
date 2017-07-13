@@ -20,6 +20,20 @@ const char* NoSuchLinkFoundException::what() const throw(){
 
 // public main functions
 
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans,
+                            const double &quality){
+
+    // check if rotation quaternion is normalized
+    if( qrot.length() < 0.995 || qrot.length() > 1.005)
+        qWarning() << "Rotation quaternion is not normalized.\n";
+
+    // check if translation quaternion is pure
+    if(qtrans.scalar() != 0.)
+        qWarning() << "Translation quaternion is not pure.\n";
+
+    registerLink(srcFrame, destFrame, tstamp, qrot, qtrans, quality, true);
+}
+
 void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans){
 
     // check if rotation quaternion is normalized
@@ -30,51 +44,25 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
     if(qtrans.scalar() != 0.)
         qWarning() << "Translation quaternion is not pure.\n";
 
-    std::lock_guard<std::recursive_mutex> guard(lock);
+    registerLink(srcFrame, destFrame, tstamp, qrot, qtrans, 0, false);
+}
 
-    // check if frames already exist
-    auto iter2SrcFrame = frameID2Frame.find(srcFrame);
-    auto iter2DstFrame = frameID2Frame.find(destFrame);
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans, const double &quality){
 
-    Frame* ptr2SrcFrame; Frame* ptr2DstFrame;
+    float data[]{trans(0,0),trans(0,1),trans(0,2),
+                 trans(1,0),trans(1,1),trans(1,2),
+                 trans(2,0),trans(2,1),trans(2,2)};
 
-    // if a frame does not exist, create it
-    if(iter2SrcFrame == frameID2Frame.end()){
+    QMatrix3x3 rM(data);
 
-        frameID2Frame.insert({srcFrame, Frame{srcFrame}});
-        ptr2SrcFrame = &(*frameID2Frame.find(srcFrame)).second;
+    // check if the rotation matrix is normal (det = 1/-1)
+    double det = fabs(data[0]*data[4]*data[8]+data[1]*data[5]*data[6]+data[2]*data[3]*data[7]-
+                      data[2]*data[4]*data[6]-data[1]*data[3]*data[8]-data[0]*data[5]*data[7]);
 
-    }
-    else
-        ptr2SrcFrame = &(*iter2SrcFrame).second;
+    if(det < 0.995 || det > 1.005)
+        qWarning() << "Rotation Matrix is not normal.\n";
 
-    if(iter2DstFrame == frameID2Frame.end()){
-
-        frameID2Frame.insert({destFrame, Frame{destFrame}});
-        ptr2DstFrame = &(*frameID2Frame.find(destFrame)).second;
-
-    }
-    else
-        ptr2DstFrame = &(*iter2DstFrame).second;
-
-    // check if a link between srcFrame and destFrame exists
-    Link* ptr2Link = nullptr;
-    ptr2SrcFrame->connectionTo(destFrame, ptr2Link);
-
-    // if the link does not exist, create it
-    if(ptr2Link == nullptr){
-
-        links.emplace_back(Link{ptr2SrcFrame, ptr2DstFrame, storageTime});
-        ptr2Link = &links.back();
-        ptr2SrcFrame->addLink(ptr2Link);
-    }
-
-    // add the transformation to the link
-    if(!ptr2Link->addTransformation(srcFrame, StampedTransformation{tstamp, qrot, qtrans})){
-        qWarning() << "Entry not stored since entry is to old.\n";
-    }
-
-    return;
+    registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)), quality, true);
 }
 
 void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans) {
@@ -92,28 +80,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
    if(det < 0.995 || det > 1.005)
        qWarning() << "Rotation Matrix is not normal.\n";
 
-   registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)));
-
-}
-
-void TransMem::writeJSON(QJsonObject &json) const {
-
-    QJsonArray frameObjects;
-    for(auto f: frameID2Frame){
-        QJsonObject frameObject;
-        f.second.writeJSON(frameObject);
-        frameObjects.append(frameObject);
-    }
-
-    QJsonArray linkObjects;
-    for(Link l: links){
-        QJsonObject linkObject;
-        l.writeJSON(linkObject);
-        linkObjects.append(linkObject);
-    }
-
-    json.insert("frames", frameObjects);
-    json.insert("links", linkObjects);
+   registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)), 0, false);
 
 }
 
@@ -199,6 +166,28 @@ StampedAndRatedTransformation TransMem::getBestLink(const FrameID &srcFrame, con
 }
 
 // public debug functions
+
+
+void TransMem::writeJSON(QJsonObject &json) const {
+
+    QJsonArray frameObjects;
+    for(auto f: frameID2Frame){
+        QJsonObject frameObject;
+        f.second.writeJSON(frameObject);
+        frameObjects.append(frameObject);
+    }
+
+    QJsonArray linkObjects;
+    for(Link l: links){
+        QJsonObject linkObject;
+        l.writeJSON(linkObject);
+        linkObjects.append(linkObject);
+    }
+
+    json.insert("frames", frameObjects);
+    json.insert("links", linkObjects);
+
+}
 
 void TransMem::dumpAsJSON() const {
 
@@ -295,6 +284,8 @@ bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
     resultT.qRot = QQuaternion();
     resultT.qTra = QQuaternion(0,0,0,0);
 
+    double qualitySum = 0;
+
     // calculate transformation along the path
     for(Link& l : path.links){
         // get the transformation of the current link
@@ -304,6 +295,8 @@ bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
        resultT.qTra = currentTrans.rotation * resultT.qTra * currentTrans.rotation.inverted();
        resultT.qTra = resultT.qTra + currentTrans.translation;
 
+       qualitySum += l.quality;
+
        // choose new current frame depending on the direction of the link
        if(l.parent->frameID == currentSrcFrameID)
            currentSrcFrameID = l.child->frameID;
@@ -311,8 +304,69 @@ bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
            currentSrcFrameID = l.parent->frameID;
     }
 
-     return true;
- }
+    resultT.avgLinkQuality = qualitySum / path.links.size();
+
+    return true;
+}
+
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp,
+                            const QQuaternion &qrot, const QQuaternion &qtrans, const double &quality, const bool &updateQuality){
+
+    if(srcFrame == destFrame)
+        throw std::invalid_argument("Not allowed to insert a link with srcFrame == destFrame.");
+
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    // check if frames already exist
+    auto iter2SrcFrame = frameID2Frame.find(srcFrame);
+    auto iter2DstFrame = frameID2Frame.find(destFrame);
+
+    Frame* ptr2SrcFrame; Frame* ptr2DstFrame;
+
+    // if a frame does not exist, create it
+    if(iter2SrcFrame == frameID2Frame.end()){
+
+        frameID2Frame.insert({srcFrame, Frame{srcFrame}});
+        ptr2SrcFrame = &(*frameID2Frame.find(srcFrame)).second;
+
+    }
+    else
+        ptr2SrcFrame = &(*iter2SrcFrame).second;
+
+    if(iter2DstFrame == frameID2Frame.end()){
+
+        frameID2Frame.insert({destFrame, Frame{destFrame}});
+        ptr2DstFrame = &(*frameID2Frame.find(destFrame)).second;
+
+    }
+    else
+        ptr2DstFrame = &(*iter2DstFrame).second;
+
+    // check if a link between srcFrame and destFrame exists
+    Link* ptr2Link = nullptr;
+    ptr2SrcFrame->connectionTo(destFrame, ptr2Link);
+
+    // if the link does not exist, create it
+    if(ptr2Link == nullptr){
+
+        links.emplace_back(Link{ptr2SrcFrame, ptr2DstFrame, storageTime, (updateQuality ? quality : defaultLinkQuality)});
+        ptr2Link = &links.back();
+        ptr2SrcFrame->addLink(ptr2Link);
+    }
+
+    // add the transformation to the link
+    if(!ptr2Link->addTransformation(srcFrame, StampedTransformation{tstamp, qrot, qtrans})){
+        qWarning() << "Entry not stored since entry is to old.\n";
+        return;
+    }
+
+    // maybe update quality of the link
+    if(updateQuality)
+        ptr2Link->quality = quality;
+
+    return;
+
+}
 
 bool TransMem::calculateBestPointInTime(Path &path, Timestamp &bestPoint) const{
 
@@ -440,6 +494,8 @@ bool TransMem::shortestPath(Path &path) const {
     return false;
 
 }
+
+
 
 /****************************
  * PATH                     *

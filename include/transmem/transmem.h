@@ -145,7 +145,7 @@ public:
      * @param distanceToEntryMapping custom mapping specified as function pointer.
      */
 
-    TransMem(DurationSec storageTime, const float defaultLinkQuality, func_t distanceToEntryMapping)
+    TransMem(DurationSec storageTime, const double defaultLinkQuality, func_t distanceToEntryMapping)
     : storageTime(storageTime)
     , defaultLinkQuality(defaultLinkQuality)
     , distanceToEntryMapping(distanceToEntryMapping)
@@ -187,13 +187,13 @@ public:
      * on this link without specifying a quality, the quality is set to 0.
      * @param quality sets the quality of the link between srcFrame and destFrame to @a quality
      */
-    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans, const float &quality);
+    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans, const double &quality);
 
     /**
      * @fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans, const float &quality)
      * @see void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans, const float &quality)
      */
-    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans, const float &quality);
+    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans, const double &quality);
 
     /**
      * @fn StampedAndRatedTransformation getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const
@@ -249,6 +249,9 @@ protected:
     bool bestLink(StampedAndRatedTransformation &stT, Path &p) const;
     bool calculateBestPointInTime(Path &path, Timestamp &bestPoint) const;
     bool calculateTransformation(const Path &path, StampedAndRatedTransformation &resultT) const;
+    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp,
+                      const QQuaternion &qrot, const QQuaternion &qtrans,
+                      const double &quality, const bool &updateQuality);
 
     std::unordered_map<FrameID, Frame> frameID2Frame;
 
@@ -259,7 +262,7 @@ protected:
 
     DurationSec storageTime{10};
 
-    const float defaultLinkQuality = 1;
+    const double defaultLinkQuality = 1;
     func_t distanceToEntryMapping = [](float x) {return x;};
 
     mutable std::recursive_mutex lock;
