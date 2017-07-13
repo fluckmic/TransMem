@@ -19,8 +19,6 @@
 #include "../../src/headers/frameAndLink.h"
 #include "../../src/headers/stampedTransformation.h"
 #include "../../src/headers/graphMLWriter.h"
-#include "../../src/headers/dijkstra.h"
-
 
 /****************************
  * NOSUCHLINKFOUNDEXCEPTION *
@@ -86,6 +84,12 @@ friend class GraphMLWriter;
 
 public:
 
+    // encode a transformation as pair of a rotation quaternion and a translation quaternion
+    typedef QPair<QQuaternion, QQuaternion> qPair;
+
+    // encode quality of a returned transformation as a pair of two confidence values
+    typedef QPair<float, float> qualityPair;
+
     /**
       * Default constructor.@n
       * Constructs a transmem object which bufferes the entries
@@ -134,6 +138,8 @@ public:
      * @param qtrans transformation quaternion
      */
 
+    // replace current version with
+    // void registerLink(const FrameID &srcFrame, const FrameID & destFrame, const Timestamp &tstamp, const &qPair)
     void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans);
 
     /**
@@ -154,6 +160,8 @@ public:
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
+    // replace current version with
+    // qPair getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, qualityPair &quality)
     QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const;
 
     /**
@@ -224,26 +232,5 @@ protected:
     bool bestLink(QMatrix4x4 &trans, Timestamp &tstamp, Path &p) const;
 };
 
-/****************************
- * TRANSMEM QML INTERFACE   *
- ****************************/
-
-class TransMemQMLInterface : public QObject, public TransMem {
-    Q_OBJECT
-
-public:
-    Q_INVOKABLE QMatrix4x4 getLinkBestCached(const QString& srcFrame, const QString& dstFrame);
-    Q_INVOKABLE void registerLinkNow(const QString& srcFrame, const QString& dstFrame, const QMatrix4x4& trans);
-
-    Q_INVOKABLE QMatrix4x4 getLinkNow(const QString& srcFrame, const QString& dstFrame) const;
-    Q_INVOKABLE QMatrix4x4 getLinkBest(const QString& srcFrame, const QString& dstFrame) const;
-
-    Q_INVOKABLE QMatrix4x4 getInterpolation(const QMatrix4x4 &m1, const QMatrix4x4 &m2, const double ratio) const;
-
-    Q_INVOKABLE QMatrix4x4 toRotQuatProduct(const QMatrix4x4& m) const;
-    Q_INVOKABLE QVector3D toTransVect(const QMatrix4x4 &m) const;
-    Q_INVOKABLE QQuaternion getLargestEigenVecAsQuaternion(const QMatrix4x4&  m);
-    Q_INVOKABLE QMatrix4x4 toTransformationMatrix(const QQuaternion &rot, const QVector3D &trans);
-};
 
 #endif // TRANSMEM_H
