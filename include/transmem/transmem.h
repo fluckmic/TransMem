@@ -160,6 +160,9 @@ public:
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
+
+    // sali
+
     // replace current version with
     // qPair getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, qualityPair &quality)
     QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const;
