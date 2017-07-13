@@ -279,7 +279,6 @@ bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
     FrameID currentSrcFrameID = path.src;
 
     StampedTransformation currentTrans;
-    currentTrans.time = resultT.time;
 
     resultT.qRot = QQuaternion();
     resultT.qTra = QQuaternion(0,0,0,0);
@@ -288,6 +287,9 @@ bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
 
     // calculate transformation along the path
     for(Link& l : path.links){
+
+        currentTrans.time = resultT.time;
+
         // get the transformation of the current link
         l.transformationAtTimeT(currentSrcFrameID, currentTrans);
 

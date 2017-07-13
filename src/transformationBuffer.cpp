@@ -190,6 +190,9 @@ void TransformationBuffer::interpolate(const StampedTransformation &el, const St
     // linear interpolation for the translation
     res.translation = el.translation*(1.-ratio) + er.translation*ratio;
 
+    // we set time of the result to the time of the transformation entry which is farther away
+    res.time = (ratio > 0.5 ? el.time : er.time);
+
     return;
 }
 
