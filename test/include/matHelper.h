@@ -5,7 +5,9 @@
 #include <QtGui/QGenericMatrix>
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QVector3D>
+
 #include "src/headers/typedefs.h"
+#include "include/transmem/transmem.h"
 
 #endif // MATHELPER_H
 
@@ -25,5 +27,7 @@ public:
    static QMatrix4x4 getRotMatrix(double angle, QVector3D axis);
 
    static bool matrixComparator(const QMatrix4x4 &ref, const QMatrix4x4 &oth);
+
+   static QMatrix4x4 toMatrix4x4(const StampedAndRatedTransformation &t);
 
 };

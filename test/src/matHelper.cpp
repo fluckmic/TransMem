@@ -72,5 +72,15 @@ bool MatHelper::matrixComparator(const QMatrix4x4 &ref, const QMatrix4x4 &oth){
                  if(std::fabs(ref(ii,jj)-oth(ii,jj)) > 1e-05)
                      return false;
          return true;
- }
+}
+
+QMatrix4x4 MatHelper::toMatrix4x4(const StampedAndRatedTransformation &t){
+
+    QMatrix3x3 rotM = t.qRot.toRotationMatrix();
+
+    QMatrix4x4 ret = QMatrix4x4(rotM);
+    ret(0,3) = t.qTra.x(); ret(1,3) = t.qTra.y(); ret(2,3) = t.qTra.z();
+
+    return ret;
+}
 

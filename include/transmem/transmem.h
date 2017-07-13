@@ -13,7 +13,6 @@
 #include <mutex>
 #include <functional>
 #include <QDateTime>
-#include "Eigen/Eigenvalues"
 
 #include "../../src/headers/typedefs.h"
 #include "../../src/headers/frameAndLink.h"
@@ -65,6 +64,7 @@ private:
  ****************************/
 
 struct Path {
+
     FrameID src;
     FrameID dst;
     std::vector< std::reference_wrapper<Link> > links;
@@ -72,6 +72,45 @@ struct Path {
     void writeJSON(QJsonObject &json) const;
 };
 
+/****************************
+ * StampedAndRatedTransformation                *
+ * *************************/
+
+/* Return type of transmem. Encodes not just the transformation but also
+   some information about the quality of the link.
+
+   ++ unnecessary convertion between matrix and quaternion
+   ++ more flexible return type, can add additional stuff without changing interface
+*/
+
+struct StampedAndRatedTransformation {
+
+    // Quaternions encoding the transformation
+    QQuaternion qRot;
+    QQuaternion qTra;
+
+    // Information about the "quality" of the transformation
+
+    // One measurement for the quality of a transformation is the is the average of all link qualities along the path. For all
+    // links for which the quality was not set explicitly the default quality is used.
+    float avgLinkQuality;
+
+    // Another measurement for the quality of a transformation is the average of the the time distances to the saved transformation entry
+    // which is used for the calculation of a single links transformation and which is further away.
+    //
+    // Link 1:              |****x**********|
+    // Link 2:      |************x*****|
+    //
+    // avgDistanceToEntry:  10+12 / 2 = 11
+
+    // The value is in ms. One can change the mapping via a function f which can be passed to transmem constructor
+    float avgDistanceToEntry;
+
+    // NOTE: for both qualities are different calculation methods than the averaging thinkable. Maybe even setable from outside via function pointers..
+
+    // timestamp as additional information
+    Timestamp time;
+};
 
 /****************************
  * TRANSMEM                 *
@@ -80,20 +119,19 @@ struct Path {
 class TransMem
 {
 
+typedef float (*func_t)(float);
+
 friend class GraphMLWriter;
 
 public:
-
-    // encode a transformation as pair of a rotation quaternion and a translation quaternion
-    typedef QPair<QQuaternion, QQuaternion> qPair;
-
-    // encode quality of a returned transformation as a pair of two confidence values
-    typedef QPair<float, float> qualityPair;
 
     /**
       * Default constructor.@n
       * Constructs a transmem object which bufferes the entries
       * for a default duration of 10 seconds.
+      *
+      * The default quality of a link is set to 1.
+      * The default mapping for distanceToEntry is f(x) = x.
       */
     TransMem() = default;
 
@@ -103,11 +141,14 @@ public:
      * for the duration specified in @a dur.
      * If the duration is smaller than one second, the duration
      * is set to one second.
-     * @param dur buffer duration in seconds
-     *
+     * @param storageTime buffer duration in seconds
+     * @param distanceToEntryMapping custom mapping specified as function pointer.
      */
-    TransMem(DurationSec storageTime)
+
+    TransMem(DurationSec storageTime, const float defaultLinkQuality, func_t distanceToEntryMapping)
     : storageTime(storageTime)
+    , defaultLinkQuality(defaultLinkQuality)
+    , distanceToEntryMapping(distanceToEntryMapping)
     {
         // if the duration time is smaller than one second,
         // we set the duration time to one second.
@@ -137,13 +178,25 @@ public:
      * @param qrot rotation quaternion
      * @param qtrans transformation quaternion
      */
-
-    // replace current version with
-    // void registerLink(const FrameID &srcFrame, const FrameID & destFrame, const Timestamp &tstamp, const &qPair)
     void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans);
 
     /**
-     * @fn QQuaternion getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const
+     * @fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans, const float &quality)
+     * @see void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans)
+     * @brief additional parameter @a quality allows to set a quality to the link between the source frame and the destination frame. If one registers a transformation
+     * on this link without specifying a quality, the quality is set to 0.
+     * @param quality sets the quality of the link between srcFrame and destFrame to @a quality
+     */
+    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans, const float &quality);
+
+    /**
+     * @fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans, const float &quality)
+     * @see void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans, const float &quality)
+     */
+    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans, const float &quality);
+
+    /**
+     * @fn StampedAndRatedTransformation getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const
      * @brief Returns the transformation from @a srcFrame to @a destFrame at time @a tstamp.@n@n
      * The library searches for the shortest path from @a srcFrame to @a destFrame in the underlying graph datastructure with regard to the number of edges.@n
      * If the there is more than one shortest path, the one which is discovered first is used for the calculation of the transformation.@n@n@n
@@ -156,72 +209,58 @@ public:
      * @param srcFrame identifier of the source frame
      * @param destFrame identiier of the destination frame
      * @param tstamp timestamp at what time the returned transformation is valid
-     * @return matrix encoding the requested transformation
+     * @return A StampedAndRatedTransformation object encoding the requested transformation and additional quality information
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
-
-    // sali
-
-    // replace current version with
-    // qPair getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, qualityPair &quality)
-    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const;
+    StampedAndRatedTransformation getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const;
 
     /**
-     * @fn QQuaternion getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const
-     * @brief Returns the transformation between @a srcFrame at time @a tstamp1 to @a destFrame at time @a tstamp2.@n The query requires a third frame @a fixFrame which is
-     * stationary relative to @a srcFrame and @a destFrame.
-     * @see TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const
-     * @param srcFrame identifier of the source frame
-     * @param fixFrame identifier of the fix frame
-     * @param destFrame identifier of the destination frame
-     * @param tstamp1 timestamp when the transformation from the source to the fix frame is valid
-     * @param tstamp2 timestamp when the transformation from the fix frame to the destination frame is valid
-     * @return matrix encoding the requested transformation
-     * @throws InvalidArgumentException
-     * @throws NoSuchLinkFoundException
-     */
-    QMatrix4x4 getLink(const FrameID &srcFrame, const FrameID &fixFrame, const FrameID &destFrame, const Timestamp &tstamp1, const Timestamp &tstamp2) const;
-
-    /**
-     * @fn QQuaternion getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const
+     * @fn StampedAndRatedTransformation getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const
      * @brief Returns the best transformation betwen @a srcFrame and @a destFrame.@n@n
-     * Best transformation:@n
+     * Best transformatio:@n
      * Let L1,..,Ln be the links required for the transformation from @a srcFrame to @a destFrame.@n
      * Let Eij be the j-th transformaton entry inserted at time tij in the link Li.@n
      * The best transformation is the transformation obtained at time t, were t minimizes the sum over all |t-tij| from 1 to n.@n@n
      * The resolution of t is 10 ms.
+     * Transmem caches the entries. That is, if no link of a certain transformation was updated, the cached transformation is returned.
      * @param srcFrame identifier of the source frame
      * @param destFrame identifier of the destination frame
      * @param tstamp returns at what time the best transformation was available
-     * @return matrix encoding the requested transformation
+     * @return A StampedAndRatedTransformation object encoding the requested transformation and additional quality information
      * @throws InvalidArgumentException
      * @throws NoSuchLinkFoundException
      */
-    QMatrix4x4 getBestLink(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp) const;
+    StampedAndRatedTransformation getBestLink(const FrameID &srcFrame, const FrameID &destFrame);
 
-    QMatrix4x4 getBestLinkCached(const FrameID &srcFrame, const FrameID &destFrame, Timestamp &tstamp);
-
+    /**
+     * @brief dumpAsJSON
+     */
     void dumpAsJSON() const;
 
+    /**
+     * @brief dumpAsGraphML
+     */
     void dumpAsGraphML() const;
 
 protected:
 
     bool shortestPath(Path &p) const;
-
-    bool calculateBestPointInTime(Path &path, Timestamp &tStampBestPointInTime) const;
-
-    bool calculateTransformation(const Path &path, StampedTransformation &e) const;
+    bool bestLink(StampedAndRatedTransformation &stT, Path &p) const;
+    bool calculateBestPointInTime(Path &path, Timestamp &bestPoint) const;
+    bool calculateTransformation(const Path &path, StampedAndRatedTransformation &resultT) const;
 
     std::unordered_map<FrameID, Frame> frameID2Frame;
 
     std::deque<Link> links;
 
     std::unordered_map< std::string, std::pair< Timestamp, Path > > cachedBestLinks;
-    std::unordered_map< std::string, QMatrix4x4 > cachedBestTransformations;
+    std::unordered_map< std::string, StampedAndRatedTransformation > cachedBestTransformations;
 
     DurationSec storageTime{10};
+
+    const float defaultLinkQuality = 1;
+    func_t distanceToEntryMapping = [](float x) {return x;};
 
     mutable std::recursive_mutex lock;
 
@@ -232,8 +271,6 @@ protected:
     void dumpJSONfile(const QString &path, const QJsonObject &json, const OutputType& outputType) const;
     void dumpPathAsJSON(const Path &p) const;
 
-    bool bestLink(QMatrix4x4 &trans, Timestamp &tstamp, Path &p) const;
 };
-
 
 #endif // TRANSMEM_H

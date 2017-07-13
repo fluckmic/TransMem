@@ -5,7 +5,7 @@
 #include <QFile>
 #include "../../src/headers/typedefs.h"
 
-#include "transmem/include/transmem/transmem.h"
+#include "include/transmem/transmem.h"
 
 class TransMem;
 

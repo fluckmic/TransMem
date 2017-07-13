@@ -13,13 +13,13 @@ void transmemTest::throwsExceptionTest() {
     // Test 1
     // empty transmem, all queries cause an exception
     src = "f2"; dst = "f3";
-    QVERIFY_EXCEPTION_THROWN(transMem.getLink(src, dst, tStamp), NoSuchLinkFoundException);
+    QVERIFY_EXCEPTION_THROWN(MatHelper::toMatrix4x4(transMem.getLink(src, dst, tStamp)), NoSuchLinkFoundException);
     qInfo() << "PASS   : Test 1";
 
     // Test 2
     // emptry transmem, query between two identical frames
     src = "fa"; dst = "fa";
-    QVERIFY_EXCEPTION_THROWN(transMem.getLink(src, dst, tStamp), std::invalid_argument);
+    QVERIFY_EXCEPTION_THROWN(MatHelper::toMatrix4x4(transMem.getLink(src, dst, tStamp)), std::invalid_argument);
     qInfo() << "PASS   : Test 2";
 
     // Test 3
@@ -31,7 +31,7 @@ void transmemTest::throwsExceptionTest() {
     };
     for(linkPair l : links)
         transMem.registerLink(l.first, l.second, tStamp, MatHelper::getRandTransMatrix());
-    QVERIFY_EXCEPTION_THROWN(transMem.getLink(src, dst, tStamp), NoSuchLinkFoundException);
+    QVERIFY_EXCEPTION_THROWN(MatHelper::toMatrix4x4(transMem.getLink(src, dst, tStamp)), NoSuchLinkFoundException);
     qInfo() << "PASS   : Test 3";
 }
 
@@ -57,25 +57,25 @@ void transmemTest::simpleQueriesTest(){
 
     // Test 1
     // get same transformation back if queried at the exact time in the same direction
-    ret = transMem.getLink(src, dst, tStamp);
+    ret = MatHelper::toMatrix4x4(transMem.getLink(src, dst, tStamp));
     QVERIFY(MatHelper::matrixComparator(insrt, ret));
     qInfo() << "PASS   : Test 1";
 
     // Test 2
     // get the inverse transformation back if queried at the exact time in the opposite direction
-    ret = transMem.getLink(dst, src, tStamp);
+    ret = MatHelper::toMatrix4x4(transMem.getLink(dst, src, tStamp));
     QVERIFY(MatHelper::matrixComparator(insrt.inverted(), ret));
     qInfo() << "PASS   : Test 2";
 
     // Test 3
     // get the same transformation back if queried a little later
-    ret = transMem.getLink(src, dst, tStamp + dt);
+    ret = MatHelper::toMatrix4x4(transMem.getLink(src, dst, tStamp + dt));
     QVERIFY(MatHelper::matrixComparator(insrt, ret));
     qInfo() << "PASS   : Test 3";
 
     // Test 4
-    // get the inverse transformation back if queried a little earlier in the opposite directin
-    ret = transMem.getLink(dst, src, tStamp - dt);
+    // get the inverse transformation back if queried a little earlier in the opposite directio
+    ret = MatHelper::toMatrix4x4(transMem.getLink(dst, src, tStamp - dt));
     QVERIFY(MatHelper::matrixComparator(insrt.inverted(), ret));
     qInfo() << "PASS   : Test 4";
 
@@ -119,7 +119,7 @@ void transmemTest::simpleMultiStepQueriesTest(){
     sol2 = links.at(17).second.inverted()*links.at(15).second.inverted()*
            links.at(21).second*links.at(6).second.inverted();
 
-    res = transMem.getLink(src, dst, tStamp);
+    res = MatHelper::toMatrix4x4(transMem.getLink(src, dst, tStamp));
     QVERIFY(MatHelper::matrixComparator(sol1,res) || MatHelper::matrixComparator(sol2,res));
     qInfo() << "PASS   : Test 1";
 
@@ -131,7 +131,7 @@ void transmemTest::simpleMultiStepQueriesTest(){
            links.at(21).second*links.at(7).second.inverted()*
            links.at(10).second*links.at(11).second.inverted();
 
-    res = transMem.getLink(src, dst, tStamp);
+    res = MatHelper::toMatrix4x4(transMem.getLink(src, dst, tStamp));
     QVERIFY(MatHelper::matrixComparator(sol1,res));
     qInfo() << "PASS   : Test 2";
 }
@@ -176,8 +176,9 @@ void transmemTest::bestPointInTimeTest(){
     // get time when the "best" transformation betwen f1 and f3 is available for transMem1
     src = "f1"; dst = "f3";
 
-    Timestamp bestTimestamp;
-    transMems.at(0)->getBestLink(src, dst, bestTimestamp);
+    StampedAndRatedTransformation tr = transMems.at(0)->getBestLink(src, dst);
+    Timestamp bestTimestamp = tr.time;
+
     Timestamp solBestTimestamp = tStampZ +  std::chrono::milliseconds(140);
 
     auto tStampRetMS =
@@ -193,7 +194,9 @@ void transmemTest::bestPointInTimeTest(){
     // get time when the "best" transformation betwen f1 and f3 is available for the transMem2
     src = "f1"; dst = "f3";
 
-    transMems.at(1)->getBestLink(src, dst, bestTimestamp);
+    tr = transMems.at(1)->getBestLink(src, dst);
+    bestTimestamp = tr.time;
+
     solBestTimestamp = tStampZ +  std::chrono::milliseconds(67);
 
     tStampRetMS =
@@ -221,21 +224,21 @@ void transmemTest::cachedBestLinksTest(){
     tm.registerLink(src, dst, tsInsertion, trans1);
 
     for(int i = 0; i < 5; i++)
-       QVERIFY(MatHelper::matrixComparator(trans1, tm.getBestLinkCached(src, dst, ts)));
+       QVERIFY(MatHelper::matrixComparator(trans1, MatHelper::toMatrix4x4(tm.getBestLink(src, dst))));
 
     tm.registerLink(src, dst, tsInsertion - std::chrono::milliseconds(13), trans2);
 
-    QVERIFY(MatHelper::matrixComparator(trans2, tm.getBestLinkCached(src, dst, ts)));
+    QVERIFY(MatHelper::matrixComparator(trans2, MatHelper::toMatrix4x4(tm.getBestLink(src, dst))));
     qInfo() << "PASS   : Test 1";
 
     dst = "f11";
 
     tm.registerLink(src, dst, tsInsertion + std::chrono::milliseconds(32), trans1);
 
-    QVERIFY(MatHelper::matrixComparator(trans1, tm.getBestLinkCached(src,dst, ts)));
+    QVERIFY(MatHelper::matrixComparator(trans1, MatHelper::toMatrix4x4(tm.getBestLink(src,dst))));
 
     for(int i = 0; i < 5; i++)
-       QVERIFY(MatHelper::matrixComparator(trans1, tm.getBestLinkCached(src, dst, ts)));
+       QVERIFY(MatHelper::matrixComparator(trans1, MatHelper::toMatrix4x4(tm.getBestLink(src, dst))));
 
     qInfo() << "PASS   : Test 1";
 }
@@ -275,7 +278,7 @@ void transmemTest::pruningTest(){
                                   offsetTransPairs.at(innerIndx).second);
 
         sol = offsetTransPairs.at(solutionNr.at(outerIndx)).second;
-        res = transMem.getLink(src, dst, tStampQ);
+        res = MatHelper::toMatrix4x4(transMem.getLink(src, dst, tStampQ));
         QVERIFY(MatHelper::matrixComparator(sol,res));
         qInfo() << "PASS   : Test " + QString::number(outerIndx + 1);
     }
@@ -307,8 +310,8 @@ void transmemTest::inversionTestSimple(){
      for(int o: offset){
 
          tStampQu = ts1 + std::chrono::milliseconds(o);
-         res = transMem.getLink(src,dst, tStampQu);
-         resInv = transMem.getLink(dst, src, tStampQu);
+         res = MatHelper::toMatrix4x4(transMem.getLink(src,dst, tStampQu));
+         resInv = MatHelper::toMatrix4x4(transMem.getLink(dst, src, tStampQu));
 
          QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
      }
@@ -329,8 +332,8 @@ void transmemTest::inversionTestSimple(){
      for(int o : offset){
 
          tStampQu = ts5 + std::chrono::milliseconds(o);
-         res = transMem.getLink(src,dst, tStampQu);
-         resInv = transMem.getLink(dst, src, tStampQu);
+         res = MatHelper::toMatrix4x4(transMem.getLink(src,dst, tStampQu));
+         resInv = MatHelper::toMatrix4x4(transMem.getLink(dst, src, tStampQu));
 
          QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
 
@@ -350,8 +353,8 @@ void transmemTest::inversionTestSimple(){
      for(int o : offset){
 
          tStampQu = ts8 + std::chrono::milliseconds(o);
-         res = transMem.getLink(src,dst, tStampQu);
-         resInv = transMem.getLink(dst, src, tStampQu);
+         res = MatHelper::toMatrix4x4(transMem.getLink(src,dst, tStampQu));
+         resInv = MatHelper::toMatrix4x4(transMem.getLink(dst, src, tStampQu));
 
          QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
 
@@ -411,8 +414,8 @@ void transmemTest::inversionTestwithAmbigousPath(){
     for(int o: offset){
 
         tStampQu = tStampZ + std::chrono::milliseconds(o);
-        res = transMem.getLink(src,dst, tStampQu);
-        resInv = transMem.getLink(dst, src, tStampQu);
+        res = MatHelper::toMatrix4x4(transMem.getLink(src,dst, tStampQu));
+        resInv = MatHelper::toMatrix4x4(transMem.getLink(dst, src, tStampQu));
 
         QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
     }
