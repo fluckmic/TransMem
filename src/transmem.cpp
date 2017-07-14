@@ -376,7 +376,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
 }
 
-bool TransMem::calculateBestPointInTime(Path &path, Timestamp &bestPoint) const{
+void TransMem::calculateBestPointInTime(Path &path, Timestamp &bestPoint) const{
 
      // we search for the best transformation in the timespan between the time when the
      // newest entry was inserted and when the oldest entry was inserted of all the links in the path
@@ -412,7 +412,7 @@ bool TransMem::calculateBestPointInTime(Path &path, Timestamp &bestPoint) const{
          }
      }
 
-    return true;
+    return;
  }
 
 bool TransMem::shortestPath(Path &path) const {
