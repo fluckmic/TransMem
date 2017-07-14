@@ -20,6 +20,7 @@ class transmemTest : public QObject {
     void bestPointInTimeTest();
     void cachedBestLinksTest();
     void linkQualityTest();
+    void timeDiffTest();
 };
 
 

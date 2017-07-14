@@ -119,7 +119,7 @@ struct StampedAndRatedTransformation {
 class TransMem
 {
 
-typedef float (*func_t)(float);
+typedef double (*func_t)(double);
 
 friend class GraphMLWriter;
 
@@ -247,8 +247,8 @@ protected:
 
     bool shortestPath(Path &p) const;
     bool bestLink(StampedAndRatedTransformation &stT, Path &p) const;
-    bool calculateBestPointInTime(Path &path, Timestamp &bestPoint) const;
-    bool calculateTransformation(const Path &path, StampedAndRatedTransformation &resultT) const;
+    void calculateBestPointInTime(Path &path, Timestamp &bestPoint) const;
+    void calculateTransformation(const Path &path, StampedAndRatedTransformation &resultT) const;
     void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp,
                       const QQuaternion &qrot, const QQuaternion &qtrans,
                       const double &quality, const bool &updateQuality);
@@ -263,7 +263,7 @@ protected:
     DurationSec storageTime{10};
 
     const double defaultLinkQuality = 1;
-    func_t distanceToEntryMapping = [](float x) {return x;};
+    func_t distanceToEntryMapping = [](double x) {return x;};
 
     mutable std::recursive_mutex lock;
 

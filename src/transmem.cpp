@@ -272,7 +272,7 @@ bool TransMem::bestLink(StampedAndRatedTransformation &stT, Path &p) const {
     return true;
 }
 
-bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransformation &resultT) const {
+void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransformation &resultT) const {
 
     // we asume the thread already holds the lock.
 
@@ -284,6 +284,7 @@ bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
     resultT.qTra = QQuaternion(0,0,0,0);
 
     double qualitySum = 0;
+    double timeDiffSum = 0;
 
     // calculate transformation along the path
     for(Link& l : path.links){
@@ -297,7 +298,11 @@ bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
        resultT.qTra = currentTrans.rotation * resultT.qTra * currentTrans.rotation.inverted();
        resultT.qTra = resultT.qTra + currentTrans.translation;
 
+       // sum up the quality of all the links
        qualitySum += l.quality;
+
+       // sum up the mapped time difference of all the links
+       timeDiffSum += distanceToEntryMapping(fabs(((std::chrono::milliseconds) std::chrono::duration_cast<std::chrono::milliseconds>(resultT.time - currentTrans.time)).count()));
 
        // choose new current frame depending on the direction of the link
        if(l.parent->frameID == currentSrcFrameID)
@@ -307,8 +312,9 @@ bool TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
     }
 
     resultT.avgLinkQuality = qualitySum / path.links.size();
+    resultT.avgDistanceToEntry = timeDiffSum / path.links.size();
 
-    return true;
+    return;
 }
 
 void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp,

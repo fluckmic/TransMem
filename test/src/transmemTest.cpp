@@ -293,6 +293,68 @@ void transmemTest::linkQualityTest() {
     qInfo() << "PASS   : Test 5";
 }
 
+void transmemTest::timeDiffTest(){
+
+    TransMem tm; FrameID src, dst; StampedAndRatedTransformation res;
+
+    Timestamp tStampZ = std::chrono::high_resolution_clock::now();
+
+    // offset for updates
+    std::vector<int> offset = { -1,10,50,
+                                -1,20,100,
+                                -1,30,
+                                -1,10,40,100,
+                                -1,20,50,130,
+                                -1,30,110,
+                                -1,10,50,70,100,130
+                               };
+
+    std::vector<linkPair> links = {{"f1","f2"},{"f3","f2"},{"f3","f4"},{"f2","f4"},
+                                   {"f4","f5"},{"f6","f5"},{"f6","f7"}};
+
+    unsigned int linkIndx = 0;
+    for(int o : offset){
+
+        if(o < 0){
+            src = links.at(linkIndx).first;
+            dst = links.at(linkIndx).second;
+            linkIndx++;
+        }
+        else{
+            tm.registerLink(src,dst,tStampZ + std::chrono::milliseconds(o), MatHelper::getRandTransMatrix());
+        }
+    }
+
+    // Test 1
+    src = "f1"; dst = "f2";
+    res = tm.getLink(src, dst, tStampZ + std::chrono::milliseconds(20));
+    QVERIFY(res.avgDistanceToEntry == 30);
+    qInfo() << "PASS   : Test 1";
+
+    // Test 2
+    res = tm.getLink(src, dst, tStampZ + std::chrono::milliseconds(70));
+    QVERIFY(res.avgDistanceToEntry == 20);
+    qInfo() << "PASS   : Test 2";
+
+    // Test 3
+    src = "f3";
+    res = tm.getLink(src, dst, tStampZ + std::chrono::milliseconds(10));
+    QVERIFY(res.avgDistanceToEntry == 10);
+    qInfo() << "PASS   : Test 3";
+
+    // Test 4
+    src = "f1"; dst = "f4";
+    res = tm.getLink(src, dst, tStampZ + std::chrono::milliseconds(30));
+    QVERIFY(res.avgDistanceToEntry == 20);
+    qInfo() << "PASS   : Test 4";
+
+    // Test 5
+    src = "f7"; dst = "f1";
+    res = tm.getLink(src, dst, tStampZ + std::chrono::milliseconds(60));
+    QVERIFY(res.avgDistanceToEntry == 36);
+    qInfo() << "PASS   : Test 5";
+}
+
 
 void transmemTest::pruningTest(){
 
