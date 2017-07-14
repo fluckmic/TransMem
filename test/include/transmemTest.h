@@ -21,6 +21,9 @@ class transmemTest : public QObject {
     void cachedBestLinksTest();
     void linkQualityTest();
     void timeDiffTest();
+
+    // test of the transformation comparator
+    void transComparatorTest();
 };
 
 

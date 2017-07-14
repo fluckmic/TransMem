@@ -355,7 +355,6 @@ void transmemTest::timeDiffTest(){
     qInfo() << "PASS   : Test 5";
 }
 
-
 void transmemTest::pruningTest(){
 
     /* A sequence of updates and queries on a single
@@ -532,6 +531,74 @@ void transmemTest::inversionTestwithAmbigousPath(){
         QVERIFY(MatHelper::matrixComparator(res.inverted(), resInv));
     }
     qInfo() << "PASS   : Test 1";
+}
+
+
+void transmemTest::transComparatorTest(){
+
+    QVector4D diff; QMatrix4x4 m1, m2;
+
+    // Test 1
+    // comparison of a random matrix with itself should yield zero
+    QMatrix4x4 m = MatHelper::getRandTransMatrix();
+    diff = MatHelper::transformationComparator(m,m);
+    QVERIFY(diff == QVector4D(0,0,0,0));
+    qInfo() << "PASS   : Test 1";
+
+    // Test 2
+    // Rotation around different axis by equal angles
+    m1 = MatHelper::getXRotMatrix(90);
+    m2 = MatHelper::getYRotMatrix(90);
+    diff = MatHelper::transformationComparator(m1,m2);
+    QVERIFY( fabs(diff.w() - sqrt(2.)) < 1e-05);
+    qInfo() << "PASS   : Test 2";
+
+    // Test 3
+    // Rotation around different axis by equal angles
+    m1 = MatHelper::getYRotMatrix(21);
+    m2 = MatHelper::getXRotMatrix(21);
+    diff = MatHelper::transformationComparator(m1,m2);
+    QVERIFY( fabs(diff.w() - sqrt(2.)) < 1e-05);
+    qInfo() << "PASS   : Test 3";
+
+    // Test 4
+    // No rotation at all
+    m1 = MatHelper::getXRotMatrix(0);
+    m2 = MatHelper::getYRotMatrix(0);
+    diff = MatHelper::transformationComparator(m1,m2);
+    QVERIFY(diff == QVector4D(0,0,0,0));
+    qInfo() << "PASS   : Test 4";
+
+    // Test 5
+    // Rotation around the same axis by the same angle
+    m1 = MatHelper::getRotMatrix(156, QVector3D(3.3,1.3,-3).normalized());
+    m2 = MatHelper::getRotMatrix(204, QVector3D(3.3,1.3,-3).normalized()*(-1.));
+    diff = MatHelper::transformationComparator(m1,m2);
+    QVERIFY(diff == QVector4D(0,0,0,0));
+    qInfo() << "PASS   : Test 5";
+
+    // Test 6
+    // Rotation around same axes by different angles
+    m1 = MatHelper::getRotMatrix(35, QVector3D(0.4,3.1,0.4).normalized());
+    m2 = MatHelper::getRotMatrix(215, QVector3D(0.4,3.1,0.4).normalized());
+    diff = MatHelper::transformationComparator(m1,m2);
+    QVERIFY(diff.z() == 2);
+    qInfo() << "PASS   : Test 6";
+
+    // Test 7
+    m1 = MatHelper::getRotMatrix(300, QVector3D(1.2,-3,12).normalized());
+    m2 = MatHelper::getRotMatrix(210, QVector3D(1.2,-3,12).normalized());
+    diff = MatHelper::transformationComparator(m1,m2);
+    QVERIFY( fabs(diff.z() - sqrt(2.)) < 1e-05);
+    qInfo() << "PASS   : Test 7";
+
+    // Test8
+    m1 = MatHelper::getRotMatrix(12.34, QVector3D(1.2,-4,0.32).normalized());
+    m2 = MatHelper::getRotMatrix(12.325, QVector3D(1.2,-4,0.32).normalized());
+    diff = MatHelper::transformationComparator(m1,m2);
+    QVERIFY( fabs(diff.z()) < 1e-03 && fabs(diff.w()) < 1e-03);
+    qInfo() << "PASS   : Test 8";
+
 }
 
 

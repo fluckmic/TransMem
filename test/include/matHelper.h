@@ -30,4 +30,9 @@ public:
 
    static QMatrix4x4 toMatrix4x4(const StampedAndRatedTransformation &t);
 
+   /* allows the comparision of two translation matrices. The implementation is not
+      used in transmem but i want to use the testing environment to test the implementation
+      of the comparator. */
+    static QVector4D transformationComparator(const QMatrix4x4 &m1, const QMatrix4x4 &m2);
+
 };
