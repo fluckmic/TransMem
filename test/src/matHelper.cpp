@@ -118,10 +118,8 @@ QVector4D MatHelper::transformationComparator(const QMatrix4x4 &m1, const QMatri
     // calculate the distance between the two normalized translation vectors
     double diffRotTrans = fabs((vTra1.normalized() - vTra2.normalized()).length());
 
-    // calculate the ratio of the length of the to translation vectors
-    double lenVTra1 = vTra1.length(), lenVTra2 = vTra2.length();
-    double ratioTrans = lenVTra2 > lenVTra1 ? lenVTra1/lenVTra2 : lenVTra2/lenVTra2;
-    ratioTrans = (1-ratioTrans)*2;
+    // calculate the difference of the length of the to translation vectors
+    double diffLenTra1 = fabs(vTra1.length() - vTra2.length());
 
     // calculate the distance between a point perpendicular to the rotation axis
     // and this point rotated by the angle difference
@@ -131,7 +129,7 @@ QVector4D MatHelper::transformationComparator(const QMatrix4x4 &m1, const QMatri
     vRotA1.normalize(); vRotA2.normalize();
     double diffRotRot = fabs((vRotA1 - vRotA2).length());
 
-    return QVector4D(diffRotTrans, 0, diffAnglRot, diffRotRot);
+    return QVector4D(diffRotTrans, diffLenTra1, diffAnglRot, diffRotRot);
 }
 
 
