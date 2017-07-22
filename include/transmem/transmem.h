@@ -13,6 +13,7 @@
 #include <mutex>
 #include <functional>
 #include <QDateTime>
+#include <math.h>
 
 #include "../../src/headers/typedefs.h"
 #include "../../src/headers/frameAndLink.h"
@@ -86,14 +87,14 @@ struct Path {
 struct StampedAndRatedTransformation {
 
     // Quaternions encoding the transformation
-    QQuaternion qRot;
-    QQuaternion qTra;
+    QQuaternion qRot{0,0,0,0};
+    QQuaternion qTra{0,0,0,0};
 
     // Information about the "quality" of the transformation
 
     // One measurement for the quality of a transformation is the is the average of all link qualities along the path. For all
     // links for which the quality was not set explicitly the default quality is used.
-    float avgLinkQuality;
+    float avgLinkQuality{0};
 
     // Another measurement for the quality of a transformation is the average of the the time distances to the saved transformation entry
     // which is used for the calculation of a single links transformation and which is further away.
@@ -103,8 +104,8 @@ struct StampedAndRatedTransformation {
     //
     // avgDistanceToEntry:  10+12 / 2 = 11
 
-    // The value is in ms. One can change the mapping via a function f which can be passed to transmem constructor
-    float avgDistanceToEntry;
+    // The value is in s. One can change the mapping via a function f which can be passed to transmem constructor
+    float maxDistanceToEntry{0};
 
     // NOTE: for both qualities are different calculation methods than the averaging thinkable. Maybe even setable from outside via function pointers..
 
@@ -233,6 +234,9 @@ public:
      */
     StampedAndRatedTransformation getBestLink(const FrameID &srcFrame, const FrameID &destFrame);
 
+
+    void updateLinkQuality(const FrameID &srcFrame, const FrameID &destFrame, const double &quality);
+
     /**
      * @brief dumpAsJSON
      */
@@ -242,6 +246,7 @@ public:
      * @brief dumpAsGraphML
      */
     void dumpAsGraphML() const;
+
 
 protected:
 
@@ -263,7 +268,7 @@ protected:
     DurationSec storageTime{10};
 
     const double defaultLinkQuality = 1;
-    func_t distanceToEntryMapping = [](double x) {return x;};
+    func_t distanceToEntryMapping = [](double x) {return x/1000.;};
 
     mutable std::recursive_mutex lock;
 

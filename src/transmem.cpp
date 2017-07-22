@@ -27,6 +27,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
     if( qrot.length() < 0.995 || qrot.length() > 1.005)
         qWarning() << "Rotation quaternion is not normalized.\n";
 
+
     // check if translation quaternion is pure
     if(qtrans.scalar() != 0.)
         qWarning() << "Translation quaternion is not pure.\n";
@@ -96,7 +97,8 @@ StampedAndRatedTransformation TransMem::getLink(const FrameID &srcFrame, const F
         throw NoSuchLinkFoundException(srcFrame, destFrame);
 
     // calculate transformation along path
-    StampedAndRatedTransformation resultingTransformation{QQuaternion(), QQuaternion(0,0,0,0), 0, 0, tstamp};
+    StampedAndRatedTransformation resultingTransformation;
+    resultingTransformation.time = tstamp;
     calculateTransformation(p, resultingTransformation);
 
     return resultingTransformation;
@@ -164,6 +166,8 @@ StampedAndRatedTransformation TransMem::getBestLink(const FrameID &srcFrame, con
         return cachedBestTransformations.at(linkID);
     }
 }
+
+void TransMem::updateLinkQuality(const FrameID &srcFrame, const FrameID &destFrame, const double &quality){}
 
 // public debug functions
 
@@ -284,7 +288,7 @@ void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
     resultT.qTra = QQuaternion(0,0,0,0);
 
     double qualitySum = 0;
-    double timeDiffSum = 0;
+    double maxTimeDiff = 0;
 
     // calculate transformation along the path
     for(Link& l : path.links){
@@ -302,7 +306,10 @@ void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
        qualitySum += l.quality;
 
        // sum up the mapped time difference of all the links
-       timeDiffSum += distanceToEntryMapping(fabs(((std::chrono::milliseconds) std::chrono::duration_cast<std::chrono::milliseconds>(resultT.time - currentTrans.time)).count()));
+       maxTimeDiff = std::max(maxTimeDiff,
+                              distanceToEntryMapping(
+                                fabs(((std::chrono::milliseconds)
+                                   std::chrono::duration_cast<std::chrono::milliseconds>(resultT.time - currentTrans.time)).count())));
 
        // choose new current frame depending on the direction of the link
        if(l.parent->frameID == currentSrcFrameID)
@@ -312,8 +319,7 @@ void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
     }
 
     resultT.avgLinkQuality = qualitySum / path.links.size();
-    resultT.avgDistanceToEntry = timeDiffSum / path.links.size();
-
+    resultT.maxDistanceToEntry = maxTimeDiff;
     return;
 }
 
