@@ -106,24 +106,14 @@ StampedAndRatedTransformation TransMem::getLink(const FrameID &srcFrame, const F
 
 StampedAndRatedTransformation TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFrame) {
 
+    if(srcFrame == destFrame)
+        throw std::invalid_argument("Not allowed to insert a link with srcFrame == destFrame.");
+
+     std::lock_guard<std::recursive_mutex> guard(lock);
+
     std::string linkID = srcFrame+destFrame;
 
-    std::lock_guard<std::recursive_mutex> guard(lock);
-
     auto itr2CachedBestLink = cachedBestLinks.find(linkID);
-
-    auto itr2CachedBestLinkRev = cachedBestLinks.find(destFrame+srcFrame);
-
-    // if the best link is cached but in the other direction we call the method again and invert its result
-    if(itr2CachedBestLinkRev != cachedBestLinks.end()){
-            StampedAndRatedTransformation res = getBestLink(destFrame, srcFrame);
-
-            // invert transformation
-            res.qRot = res.qRot.inverted();
-            res.qTra = -(res.qRot*res.qTra*res.qRot.conjugated());
-
-            return res;
-        }
 
     // otherwise we check if recalculation is necessary
     bool recalculation = true;
@@ -131,19 +121,13 @@ StampedAndRatedTransformation TransMem::getBestLink(const FrameID &srcFrame, con
     // the link is already cached, check if an update is necessary
     if(itr2CachedBestLink != cachedBestLinks.end()){
 
-    recalculation = false;
-
     Timestamp tstampBestLinkCalc = (*itr2CachedBestLink).second.first;
     Path pathBestLink = (*itr2CachedBestLink).second.second;
 
-    // the link is just recalculated if a link was updated in the mean time
-    for(Link& l : pathBestLink.links)
-        if(l.lastTimeUpdated > tstampBestLinkCalc){
-            recalculation = true;
-            break;
-        }
-
-    }
+    // the link is just recalculated if every link was updated in the mean time
+       for(Link& l : pathBestLink.links)
+           recalculation = recalculation && (l.lastTimeUpdated > tstampBestLinkCalc);
+   }
 
     // do the recalculation
     if(recalculation){
@@ -167,7 +151,39 @@ StampedAndRatedTransformation TransMem::getBestLink(const FrameID &srcFrame, con
     }
 }
 
-void TransMem::updateLinkQuality(const FrameID &srcFrame, const FrameID &destFrame, const double &quality){}
+void TransMem::updateLinkQuality(const FrameID &srcFrame, const FrameID &destFrame, const double &quality){
+
+    if(srcFrame == destFrame)
+        throw std::invalid_argument("Cannot update a link where srcFrame == destFrame.");
+
+    std::lock_guard<std::recursive_mutex> guard(lock);
+
+    // check if frames already exist
+    auto iter2SrcFrame = frameID2Frame.find(srcFrame);
+    auto iter2DstFrame = frameID2Frame.find(destFrame);
+
+    Frame* ptr2SrcFrame; Frame* ptr2DstFrame;
+
+    // just can update links which contain registered transformations
+    if(iter2SrcFrame == frameID2Frame.end() || iter2DstFrame == frameID2Frame.end())
+        throw NoSuchLinkFoundException(srcFrame, destFrame);
+
+    ptr2SrcFrame = &(*iter2SrcFrame).second;
+    ptr2DstFrame = &(*iter2DstFrame).second;
+
+    // check if a link between srcFrame and destFrame exists
+    Link* ptr2Link = nullptr;
+    ptr2SrcFrame->connectionTo(destFrame, ptr2Link);
+
+    // this would be very strange..
+    if(ptr2Link == nullptr)
+        throw NoSuchLinkFoundException(srcFrame, destFrame);
+
+    ptr2Link->quality = quality;
+
+    return;
+
+}
 
 // public debug functions
 
@@ -299,7 +315,7 @@ void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
         l.transformationAtTimeT(currentSrcFrameID, currentTrans);
 
        resultT.qRot = currentTrans.rotation * resultT.qRot;
-       resultT.qTra = currentTrans.rotation * resultT.qTra * currentTrans.rotation.inverted();
+       resultT.qTra = currentTrans.rotation * resultT.qTra * currentTrans.rotation.conjugated();
        resultT.qTra = resultT.qTra + currentTrans.translation;
 
        // sum up the quality of all the links

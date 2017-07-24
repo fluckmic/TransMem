@@ -15,6 +15,7 @@
 #include <QDateTime>
 #include <math.h>
 
+
 #include "../../src/headers/typedefs.h"
 #include "../../src/headers/frameAndLink.h"
 #include "../../src/headers/stampedTransformation.h"
@@ -105,13 +106,14 @@ struct StampedAndRatedTransformation {
     // avgDistanceToEntry:  10+12 / 2 = 11
 
     // The value is in s. One can change the mapping via a function f which can be passed to transmem constructor
-    float maxDistanceToEntry{0};
+    float maxDistanceToEntry{std::numeric_limits<float>::max()};
 
     // NOTE: for both qualities are different calculation methods than the averaging thinkable. Maybe even setable from outside via function pointers..
 
     // timestamp as additional information
     Timestamp time;
 };
+
 
 /****************************
  * TRANSMEM                 *
@@ -268,7 +270,7 @@ protected:
     DurationSec storageTime{10};
 
     const double defaultLinkQuality = 1;
-    func_t distanceToEntryMapping = [](double x) {return x/1000.;};
+    func_t distanceToEntryMapping = [](double x) {return x;};
 
     mutable std::recursive_mutex lock;
 
