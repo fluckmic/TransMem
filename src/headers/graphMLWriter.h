@@ -9,11 +9,15 @@
 
 class TransMem;
 
-// Can be used to dump the graph representing the current state of the
-// data structure as an GraphML file. (https://en.wikipedia.org/wiki/GraphML)
+/* Can be used to dump the graph representing the current state of the
+ * data structure as an GraphML file. (https://en.wikipedia.org/wiki/GraphML)
+ *
+ * The graph represented by the GraphML file can be displayed for example with Gephi.
+ * (https://gephi.org/) */
 
-// The graph represented by the GraphML file can be displayed for example with Gephi.
-// (https://gephi.org/)
+/******************
+ * GRAPHML WRITER *
+ ******************/
 
 class GraphMLWriter {
 

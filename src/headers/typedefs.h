@@ -15,7 +15,7 @@
 #include <iostream>
 #include <iomanip>
 
-// NOTE: just  for developing needed
+// NOTE: Just  for developing needed.
 #include <cassert>
 
 using FrameID = std::string;

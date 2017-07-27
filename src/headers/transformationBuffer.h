@@ -1,15 +1,16 @@
 #ifndef TRANSFORMATIONBUFFER_H
 #define TRANSFORMATIONBUFFER_H
 
-#include "typedefs.h"
-#include "stampedTransformation.h"
 #include <list>
 
-/**
- * @brief The TransformationBuffer class
- */
-class TransformationBuffer
-{
+#include "typedefs.h"
+#include "stampedTransformation.h"
+
+/*************************
+ * TRANSFORMATION BUFFER *
+ *************************/
+
+class TransformationBuffer {
 
 friend class GMLWriter;
 
@@ -28,8 +29,6 @@ public:
     bool newestEntry(StampedTransformation &te) const;
 
     bool distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry) const;
-
-    void printCurrentBufferToSTDOut() const;
 
     void writeJSON(QJsonObject &json) const;
 

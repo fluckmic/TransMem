@@ -1,12 +1,19 @@
 #include <QtTest/QTest>
 
-#include "transmem/transmem.h"
-#include "matHelper.h"
+#include <QtGui/QQuaternion>
+#include <QtGui/QGenericMatrix>
+#include <QtGui/QMatrix4x4>
+#include <QtGui/QVector3D>
 #include <math.h>
 
-#include "ctime"
+#include "transmem/transmem.h"
+
+/*****************
+ * TRANSMEM TEST *
+ *****************/
 
 class transmemTest : public QObject {
+
     Q_OBJECT
 
  private slots:
@@ -19,10 +26,9 @@ class transmemTest : public QObject {
     void pruningTest();
     void bestPointInTimeTest();
     void cachedBestLinksTest();
-    void linkQualityTest();
+    void linkConfidenceTest();
     void timeDiffTest();
 
-    // test of the transformation comparator
     void transComparatorTest();
 };
 

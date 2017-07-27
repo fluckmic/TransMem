@@ -11,6 +11,12 @@
 
 #endif // MATHELPER_H
 
+/**************
+ * MAT HELPER *
+ **************/
+
+// Funct
+
 class MatHelper {
 
 public:

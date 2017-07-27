@@ -1,5 +1,9 @@
 #include "../src/headers/graphMLWriter.h"
 
+/******************
+ * GRAPHML WRITER *
+ ******************/
+
 bool GraphMLWriter::write(const QString &path, const TransMem &tm) {
 
     QDateTime currentTime = QDateTime::currentDateTime();
@@ -49,14 +53,15 @@ bool GraphMLWriter::write(const QString &path, const TransMem &tm) {
     return true;
 }
 
-void GraphMLWriter::addNode(const QString &name){
+void GraphMLWriter::addNode(const QString &name) {
 
     xml.writeStartElement("node");
     xml.writeAttribute("id", name);
     xml.writeEndElement();  // end node
 
 }
-void GraphMLWriter::addEdge(const QString &label, const QString &src, const QString &dst){
+
+void GraphMLWriter::addEdge(const QString &label, const QString &src, const QString &dst) {
 
     xml.writeStartElement("edge");
     xml.writeAttribute("id", label);
@@ -66,7 +71,8 @@ void GraphMLWriter::addEdge(const QString &label, const QString &src, const QStr
 
     return;
 }
-void GraphMLWriter::addKey(const QString &id, const QString &attributeTarget, const QString &name, const QString &attributeType){
+
+void GraphMLWriter::addKey(const QString &id, const QString &attributeTarget, const QString &name, const QString &attributeType) {
 
     xml.writeStartElement("key");
     xml.writeAttribute("id", id);

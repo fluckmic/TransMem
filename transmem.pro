@@ -32,8 +32,7 @@ test{
     HEADERS += test/include/transmemTest.h \
                test/include/matHelper.h
 
-    SOURCES += test/src/transmemTest.cpp \
-               test/src/matHelper.cpp
+    SOURCES += test/src/transmemTest.cpp
 
     TEMPLATE = app
     TARGET = myapptests
