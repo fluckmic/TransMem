@@ -5,7 +5,7 @@
 #include "transmem/transmem.h"
 
 /****************************
- * NOSUCHLINKFOUNDEXCEPTION *
+ * NO SUCHLINKFOUNDEXCEPTION *
  ****************************/
 
 const char* NoSuchLinkFoundException::what() const throw(){
