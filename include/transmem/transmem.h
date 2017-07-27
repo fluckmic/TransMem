@@ -74,9 +74,9 @@ struct Path {
     void writeJSON(QJsonObject &json) const;
 };
 
-/****************************
+/********************************
  * StampedAndRatedTransformation                *
- * *************************/
+ * *****************************/
 
 /* Return type of transmem. Encodes not just the transformation but also
    some information about the quality of the link.
@@ -95,7 +95,9 @@ struct StampedAndRatedTransformation {
 
     // One measurement for the quality of a transformation is the is the average of all link qualities along the path. For all
     // links for which the quality was not set explicitly the default quality is used.
-    float avgLinkQuality{0};
+    float avgLinkConfidence{0};
+
+    //TODO: not correct anymore!!
 
     // Another measurement for the quality of a transformation is the average of the the time distances to the saved transformation entry
     // which is used for the calculation of a single links transformation and which is further away.

@@ -334,7 +334,7 @@ void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
            currentSrcFrameID = l.parent->frameID;
     }
 
-    resultT.avgLinkQuality = qualitySum / path.links.size();
+    resultT.avgLinkConfidence = qualitySum / path.links.size();
     resultT.maxDistanceToEntry = maxTimeDiff;
     return;
 }
