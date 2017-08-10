@@ -3,10 +3,6 @@
  typedef std::pair<FrameID, FrameID> linkPair;
  typedef std::pair< linkPair , QMatrix4x4 > linkTransPair;
 
-/********************
- * HELPER FUNCTIONS *
- ********************/
-
 QMatrix4x4 getZRotMatrix(double a){
 
     a = a * (M_PI/180);
@@ -89,12 +85,12 @@ bool matrixComparator(const QMatrix4x4 &ref, const QMatrix4x4 &oth){
          return true;
 }
 
-QMatrix4x4 toMatrix4x4(const StampedAndRatedTransformation &t){
+QMatrix4x4 toMatrix4x4(const StampedTransformationWithConfidence &t){
 
-    QMatrix3x3 rotM = t.qRot.toRotationMatrix();
+    QMatrix3x3 rotM = t.rotation.toRotationMatrix();
 
     QMatrix4x4 ret = QMatrix4x4(rotM);
-    ret(0,3) = t.qTra.x(); ret(1,3) = t.qTra.y(); ret(2,3) = t.qTra.z();
+    ret(0,3) = t.translation.x(); ret(1,3) = t.translation.y(); ret(2,3) = t.translation.z();
 
     return ret;
 }
@@ -155,10 +151,6 @@ QVector4D transformationComparator(const QMatrix4x4 &m1, const QMatrix4x4 &m2){
     return QVector4D(   ratioLenT,     distanceNormalT,    distanceNormalPointR,   distanceNormalR);
 }
 
-/*****************
- * TRANSMEM TEST *
- *****************/
-
 void transmemTest::throwsExceptionTest() {
 
     // Simple instruction which all should cause an exception.
@@ -173,7 +165,7 @@ void transmemTest::throwsExceptionTest() {
     qInfo() << "PASS   : Test 1";
 
     // Test 2
-    // Emptry transmem, query between two identical frames.
+    // Empty transmem, query between two identical frames.
     src = "fa"; dst = "fa";
     QVERIFY_EXCEPTION_THROWN(toMatrix4x4(transMem.getLink(src, dst, tStamp)), std::invalid_argument);
     qInfo() << "PASS   : Test 2";
@@ -329,7 +321,7 @@ void transmemTest::bestPointInTimeTest() {
     // Get time when the "best" transformation betwen f1 and f3 is available for transMem1.
     src = "f1"; dst = "f3";
 
-    StampedAndRatedTransformation tr = transMems.at(0)->getBestLink(src, dst);
+    StampedTransformationWithConfidence tr = transMems.at(0)->getBestLink(src, dst);
     Timestamp bestTimestamp = tr.time;
 
     Timestamp solBestTimestamp = tStampZ +  std::chrono::milliseconds(140);
@@ -415,35 +407,35 @@ void transmemTest::linkConfidenceTest() {
 
     // Test 1
     src = "f2"; dst = "f4";
-    StampedAndRatedTransformation res = tm1.getLink(src, dst, tStamp);
-    QVERIFY(res.avgLinkConfidence == 10.5);
+    StampedTransformationWithConfidence res = tm1.getLink(src, dst, tStamp);
+    QVERIFY(res.averageLinkConfidence == 10.5);
     qInfo() << "PASS   : Test 1";
 
     // Test 2
     src = "f8"; dst = "f1";
     res = tm1.getLink(src, dst, tStamp);
-    QVERIFY(res.avgLinkConfidence == 9);
+    QVERIFY(res.averageLinkConfidence == 9);
     qInfo() << "PASS   : Test 2";
 
     // Test 3
     // Updates without quality do not change the quality of the transformation.
     tm1.registerLink("f2", "f1", tStamp, getRandTransMatrix());
     res = tm1.getLink(src, dst, tStamp);
-    QVERIFY(res.avgLinkConfidence == 9);
+    QVERIFY(res.averageLinkConfidence == 9);
     qInfo() << "PASS   : Test 3";
 
     // Test 4
     // Updates with quality do change the quality of the transformation.
     tm1.registerLink("f2","f11", tStamp, getRandTransMatrix(), 11);
     res = tm1.getLink(src, dst, tStamp);
-    QVERIFY(res.avgLinkConfidence == 10);
+    QVERIFY(res.averageLinkConfidence == 10);
     qInfo() << "PASS   : Test 4";
 
     // Test 5
     // Quality of a single link.
     src = "f5"; dst = "f11";
     res = tm1.getLink(src, dst, tStamp);
-    QVERIFY(res.avgLinkConfidence == 7);
+    QVERIFY(res.averageLinkConfidence == 7);
     qInfo() << "PASS   : Test 5";
 }
 
@@ -451,7 +443,7 @@ void transmemTest::timeDiffTest() {
 
     // Simple tests to check if the maxDistanceToEntry is calculculated rigth.
 
-    TransMem tm; FrameID src, dst; StampedAndRatedTransformation res;
+    TransMem tm; FrameID src, dst; StampedTransformationWithConfidence res;
 
     Timestamp tStampZ = std::chrono::high_resolution_clock::now();
 

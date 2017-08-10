@@ -1,52 +1,42 @@
-/*! \file   transmem.cpp
-    \brief  source file transmem.cpp
-*/
-
 #include "transmem/transmem.h"
-
-/********************************
- * NO SUCH LINK FOUND EXCEPTION *
- ********************************/
 
 const char* NoSuchLinkFoundException::what() const throw(){
 
     return std::runtime_error::what();
 }
 
-/************
- * TRANSMEM *
- ************/
-
 // Public main functions
 
-void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans,
-                            const double &confidence){
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QQuaternion &tranlation,
+                            const double confidence){
 
     // Check if rotation quaternion is normalized.
-    if( qrot.length() < 0.995 || qrot.length() > 1.005)
+    if( rotation.length() <= 1. - TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK ||
+        rotation.length() >= 1. + TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK )
         qWarning() << "Rotation quaternion is not normalized.\n";
 
-    // Check if translation quaternion is pure.
-    if(qtrans.scalar() != 0.)
+    // Check if translation quaternion is pure. (scalar value of translation quaternion should be 0)
+    if(tranlation.scalar() != 0.)
         qWarning() << "Translation quaternion is not pure.\n";
 
-    registerLink(srcFrame, destFrame, tstamp, qrot, qtrans, confidence, true);
+    registerLink(srcFrame, destFrame, validTime, rotation, tranlation, confidence, true);
 }
 
-void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QQuaternion &qrot, const QQuaternion &qtrans){
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QQuaternion &translation){
 
     // Check if rotation quaternion is normalized
-    if( qrot.length() < 0.995 || qrot.length() > 1.005)
+    if( rotation.length() <= 1. - TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK ||
+        rotation.length() >= 1. + TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK )
         qWarning() << "Rotation quaternion is not normalized.\n";
 
-    // Check if translation quaternion is pure
-    if(qtrans.scalar() != 0.)
+    // Check if translation quaternion is pure (scalar value of translation quaternion should be 0)
+    if(translation.scalar() != 0.)
         qWarning() << "Translation quaternion is not pure.\n";
 
-    registerLink(srcFrame, destFrame, tstamp, qrot, qtrans, 0, false);
+    registerLink(srcFrame, destFrame, validTime, rotation, translation, 0, false);
 }
 
-void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans, const double &confidence){
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans, const double confidence){
 
     float data[]{trans(0,0),trans(0,1),trans(0,2),
                  trans(1,0),trans(1,1),trans(1,2),
@@ -58,13 +48,13 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
     double det = fabs(data[0]*data[4]*data[8]+data[1]*data[5]*data[6]+data[2]*data[3]*data[7]-
                       data[2]*data[4]*data[6]-data[1]*data[3]*data[8]-data[0]*data[5]*data[7]);
 
-    if(det < 0.995 || det > 1.005)
+    if(det <= 1 - TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK || det >= 1. + TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK)
         qWarning() << "Rotation Matrix is not normal.\n";
 
-    registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)), confidence, true);
+    registerLink(srcFrame, destFrame, validTime, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)), confidence, true);
 }
 
-void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp, const QMatrix4x4 &trans) {
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans) {
 
    float data[]{trans(0,0),trans(0,1),trans(0,2),
                 trans(1,0),trans(1,1),trans(1,2),
@@ -76,14 +66,14 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
    double det = fabs(data[0]*data[4]*data[8]+data[1]*data[5]*data[6]+data[2]*data[3]*data[7]-
                      data[2]*data[4]*data[6]-data[1]*data[3]*data[8]-data[0]*data[5]*data[7]);
 
-   if(det < 0.995 || det > 1.005)
+   if(det <= 1. - TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK || det >= 1. + TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK)
        qWarning() << "Rotation Matrix is not normal.\n";
 
-   registerLink(srcFrame, destFrame, tstamp, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)), 0, false);
+   registerLink(srcFrame, destFrame, validTime, QQuaternion::fromRotationMatrix(rM), QQuaternion(0, trans(0,3), trans(1,3), trans(2,3)), 0, false);
 
 }
 
-void TransMem::updateLinkConfidence(const FrameID &srcFrame, const FrameID &destFrame, const double &confidence){
+void TransMem::updateLinkConfidence(const FrameID &srcFrame, const FrameID &destFrame, const double confidence){
 
     if(srcFrame == destFrame)
         throw std::invalid_argument("Cannot update a link where srcFrame == destFrame.");
@@ -113,26 +103,37 @@ void TransMem::updateLinkConfidence(const FrameID &srcFrame, const FrameID &dest
     ptr2Link->confidence = confidence;
 }
 
-StampedAndRatedTransformation TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp) const {
+StampedTransformationWithConfidence TransMem::getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &queryTime) const {
 
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to query for link if source frame is equal to destination frame.");
 
-    // Search for shortest path between source frame and  destination frame.
+    std::string linkID = srcFrame+destFrame;
+
     Path p{srcFrame, destFrame};
 
-    if(!shortestPath(p))
-        throw NoSuchLinkFoundException(srcFrame, destFrame);
+    // Check if the path is already cached.
+
+    auto itr2CachedPaths = cachedPaths.find(linkID);
+    // If yes, we load the cached path
+    if(itr2CachedPaths != cachedPaths.end())
+        p = (*itr2CachedPaths).second;
+    // If not, we search for a shortest path between source frame and destination frame and cached it.
+    else {
+        if(!shortestPath(p))
+            throw NoSuchLinkFoundException(srcFrame, destFrame);
+        cachedPaths.insert({linkID, p});
+    }
 
     // Calculate transformation along path
-    StampedAndRatedTransformation resultingTransformation;
-    resultingTransformation.time = tstamp;
+    StampedTransformationWithConfidence resultingTransformation;
+    resultingTransformation.time = queryTime;
     calculateTransformation(p, resultingTransformation);
 
     return resultingTransformation;
 }
 
-StampedAndRatedTransformation TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFrame) {
+StampedTransformationWithConfidence TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFrame) const {
 
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to insert a link with srcFrame == destFrame.");
@@ -142,62 +143,93 @@ StampedAndRatedTransformation TransMem::getBestLink(const FrameID &srcFrame, con
 
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    // Check if link is already cached.
-    auto itr2CachedBestLink = cachedBestLinks.find(linkID);
-    if(itr2CachedBestLink != cachedBestLinks.end()){
+    Path p{srcFrame, destFrame};
 
-    Timestamp tstampBestLinkCalc = (*itr2CachedBestLink).second.first;
-    Path pathBestLink = (*itr2CachedBestLink).second.second;
+    // Check if the path is already cached.
 
-    // The link is just recalculated if every link was updated in the mean time.
-       for(Link& l : pathBestLink.links)
-           recalculation = recalculation && ( tstampBestLinkCalc < l.lastTimeUpdated);
-   }
+    auto itr2CachedPaths = cachedPaths.find(linkID);
+    // If yes, we load the cached path
+    if(itr2CachedPaths != cachedPaths.end())
+        p = (*itr2CachedPaths).second;
+    // If not, we search for a shortest path between source frame and destination frame.
+    else {
+        if(!shortestPath(p))
+            throw NoSuchLinkFoundException(srcFrame, destFrame);
+        cachedPaths.insert({linkID, p});
+    }
 
-    // Do the recalculation if either the link was not cached before or every link along
+    // Check if there is already a best transformation cached
+
+    auto itr2BestTransformations = cachedBestTransformations.find(linkID);
+
+    // If yes we check if a recalculation is necessary
+    if(itr2BestTransformations != cachedBestTransformations.end()){
+        // The link is just recalculated if every link was updated in the mean time.
+
+        Timestamp tstampBestLinkCalc = (*itr2BestTransformations).second.first;
+
+        for(Link link : p.links)
+           recalculation = recalculation && ( tstampBestLinkCalc < link.lastTimeUpdated);
+    }
+    // If not a recalculation is necessary for sure
+
+    // Do the recalculation if either the path was not cached before or every link along
     // the path was updated since the link was added to the cache.
     if(recalculation){
 
-        StampedAndRatedTransformation stT;
+        StampedTransformationWithConfidence stT;
         Path path{srcFrame, destFrame};
 
-        if(!bestLink(stT, path))
+        if(!bestLink(path, stT))
                throw NoSuchLinkFoundException(srcFrame, destFrame);
 
-        // Remove old entries.
-        cachedBestLinks.erase(linkID);
+        // Remove old best transformation and insert new one
         cachedBestTransformations.erase(linkID);
 
-        cachedBestLinks.insert({linkID,{std::chrono::high_resolution_clock::now(), path}});
-        cachedBestTransformations.insert({linkID, stT});
+        cachedBestTransformations.insert({linkID,{std::chrono::high_resolution_clock::now(), stT}});
 
         return stT;
     }
     else{
-        return cachedBestTransformations.at(linkID);
+        return (*itr2BestTransformations).second.second;
     }
 }
 
 // Public debug functions
 
-void TransMem::dumpAsJSON() const {
+void TransMem::dumpAsJSON(const QString &path) const {
 
-    QString path = "";
-    QJsonObject transmemObject;
+    QJsonObject transmemJSONObject;
 
     std::lock_guard<std::recursive_mutex> guard(lock);
 
-    writeJSON(transmemObject);
+    // pack the transmem object to a JSON object
+    writeJSON(transmemJSONObject);
 
-    dumpJSONfile(path, transmemObject, OutputType::TRANSMEM);
+    QDateTime currentTime = QDateTime::currentDateTime();
+    QString suffixFilename = "_transmem_dump.json";
+
+    QFile file( path + currentTime.toString("ddMMyy_HHmmss") + suffixFilename);
+    if(!file.open(QIODevice::WriteOnly)){
+        qDebug() << file.errorString();
+        return;
+    }
+
+    QJsonDocument saveJSON(transmemJSONObject);
+    file.write(saveJSON.toJson());
+
+    file.close();
+    if(file.error()){
+        qDebug() << file.errorString();
+        return;
+    }
 
     return;
 }
 
-void TransMem::dumpAsGraphML() const {
+void TransMem::dumpAsGraphML(const QString &path) const {
 
    GraphMLWriter writer;
-   QString path = "";
 
    std::lock_guard<std::recursive_mutex> guard(lock);
    writer.write(path, *this);
@@ -206,24 +238,24 @@ void TransMem::dumpAsGraphML() const {
 
 // Protected functions
 
-bool TransMem::bestLink(StampedAndRatedTransformation &stT, Path &p) const {
+bool TransMem::bestLink(Path &path, StampedTransformationWithConfidence &stT) const {
 
     // Asume the lock is already aquired.
 
     // Search for shortest path between source frame and  destination frame.
-    if(!shortestPath(p))
+    if(!shortestPath(path))
         return false;
 
     // Evaluate best point in time.
-    calculateBestPointInTime(p, stT.time);
+    calculateBestPointInTime(path, stT.time);
 
     // Calculate transformation along path.
-    calculateTransformation(p, stT);
+    calculateTransformation(path, stT);
 
     return true;
 }
 
-void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransformation &resultT) const {
+void TransMem::calculateTransformation(const Path &path, StampedTransformationWithConfidence &resultT) const {
 
     // Asume the lock is already aquired.
 
@@ -231,8 +263,8 @@ void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
 
     StampedTransformation currentTrans;
 
-    resultT.qRot = QQuaternion();
-    resultT.qTra = QQuaternion(0,0,0,0);
+    resultT.rotation = QQuaternion();
+    resultT.translation = QQuaternion(0,0,0,0);
 
     double confidenceSum = 0;
     double maxTimeDiff = 0;
@@ -245,9 +277,9 @@ void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
         // Get the transformation of the current link.
         l.transformationAtTimeT(currentSrcFrameID, currentTrans);
 
-       resultT.qRot = currentTrans.rotation * resultT.qRot;
-       resultT.qTra = currentTrans.rotation * resultT.qTra * currentTrans.rotation.conjugated();
-       resultT.qTra = resultT.qTra + currentTrans.translation;
+       resultT.rotation = currentTrans.rotation * resultT.rotation;
+       resultT.translation = currentTrans.rotation * resultT.translation * currentTrans.rotation.conjugated();
+       resultT.translation = resultT.translation + currentTrans.translation;
 
        // Sum up the confidence of all the links.
        confidenceSum += l.confidence;
@@ -265,12 +297,12 @@ void TransMem::calculateTransformation(const Path &path, StampedAndRatedTransfor
            currentSrcFrameID = l.parent->frameID;
     }
 
-    resultT.avgLinkConfidence = confidenceSum / path.links.size();
+    resultT.averageLinkConfidence = confidenceSum / path.links.size();
     resultT.maxDistanceToEntry = maxTimeDiff;
 }
 
-void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &tstamp,
-                            const QQuaternion &qrot, const QQuaternion &qtrans, const double &confidence, const bool &updateConfidence){
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime,
+                            const QQuaternion &rotation, const QQuaternion &translation, const double confidence, const bool updateConfidence){
 
     if(srcFrame == destFrame)
         throw std::invalid_argument("Not allowed to insert a link with srcFrame == destFrame.");
@@ -309,13 +341,17 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
     // If the link does not exist, create it.
     if(ptr2Link == nullptr){
 
+        // Clear the cached paths and best transformations
+        cachedPaths.clear();
+        cachedBestTransformations.clear();
+
         links.emplace_back(Link{ptr2SrcFrame, ptr2DstFrame, storageTime, (updateConfidence ? confidence : defaultLinkConfidence)});
         ptr2Link = &links.back();
         ptr2SrcFrame->addLink(ptr2Link);
     }
 
     // Add the transformation to the link.
-    if(!ptr2Link->addTransformation(srcFrame, StampedTransformation{qrot, qtrans, tstamp})){
+    if(!ptr2Link->addTransformation(srcFrame, StampedTransformation{rotation, translation, validTime})){
         qWarning() << "Entry not stored since entry is to old.\n";
         return;
     }
@@ -325,7 +361,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
         ptr2Link->confidence = confidence;
 }
 
-void TransMem::calculateBestPointInTime(Path &path, Timestamp &bestPoint) const{
+void TransMem::calculateBestPointInTime(Path &path, Timestamp &bestTime) const{
 
      Timestamp tStampOldest = std::chrono::time_point<std::chrono::high_resolution_clock>::max();
      StampedTransformation stampedTrans;
@@ -334,32 +370,32 @@ void TransMem::calculateBestPointInTime(Path &path, Timestamp &bestPoint) const{
       * newest entry was inserted and when the oldest entry was inserted of all the links in the path.
 
       * We therefore first search for this points and store them in tStampOldest and bestPoint. */
-    for(Link& l : path.links){
+    for(Link& link : path.links){
 
-        l.oldestTransformation(l.parent->frameID, stampedTrans);
+        link.oldestTransformation(link.parent->frameID, stampedTrans);
         if(stampedTrans.time < tStampOldest)
             tStampOldest = stampedTrans.time;
 
-        l.newestTransformation(l.parent->frameID, stampedTrans);
-        if(stampedTrans.time > bestPoint)
-            bestPoint = stampedTrans.time;
+        link.newestTransformation(link.parent->frameID, stampedTrans);
+        if(stampedTrans.time > bestTime)
+            bestTime = stampedTrans.time;
      }
 
      unsigned long best = std::numeric_limits<unsigned long>::max();
 
      // We then search for the point in time which minimizes the sum of the quadratic distance to the next entry over all links.
-     for(Timestamp tStampCurr = bestPoint; tStampCurr > tStampOldest; tStampCurr = tStampCurr - std::chrono::milliseconds(5)){
+     for(Timestamp tStampCurr = bestTime; tStampCurr > tStampOldest; tStampCurr = tStampCurr - std::chrono::milliseconds(RESOLUTION_BEST_TIME_CALCULATION_IN_MS)){
 
          std::chrono::milliseconds temp(0);
          unsigned long sum = 0;
-         for(Link &l: path.links){
-            l.distanceToNextClosestEntry(tStampCurr, temp);
+         for(Link& link: path.links){
+            link.distanceToNextClosestEntry(tStampCurr, temp);
             sum += temp.count() * temp.count();
          }
 
          if(sum < best){
              best = sum;
-             bestPoint = tStampCurr;
+             bestTime = tStampCurr;
          }
      }
  }
@@ -436,11 +472,11 @@ bool TransMem::shortestPath(Path &path) const {
     };
 
     // Update distances for each link.
-    for(Link* l : currPtr2Frame->parents)
-        updateDistance(l->parent->frameID, distanceViaCurr + l->weight);
+    for(Link* link : currPtr2Frame->parents)
+        updateDistance(link->parent->frameID, distanceViaCurr + link->weight);
 
-    for(Link* l : currPtr2Frame->children)
-        updateDistance(l->child->frameID, distanceViaCurr + l->weight);
+    for(Link* link : currPtr2Frame->children)
+        updateDistance(link->child->frameID, distanceViaCurr + link->weight);
 
    }
 
@@ -453,16 +489,16 @@ bool TransMem::shortestPath(Path &path) const {
 void TransMem::writeJSON(QJsonObject &json) const {
 
     QJsonArray frameObjects;
-    for(auto f: frameID2Frame){
+    for(std::pair<FrameID, Frame> frameIDframePair: frameID2Frame){
         QJsonObject frameObject;
-        f.second.writeJSON(frameObject);
+        frameIDframePair.second.writeJSON(frameObject);
         frameObjects.append(frameObject);
     }
 
     QJsonArray linkObjects;
-    for(Link l: links){
+    for(Link link: links){
         QJsonObject linkObject;
-        l.writeJSON(linkObject);
+        link.writeJSON(linkObject);
         linkObjects.append(linkObject);
     }
 
@@ -471,58 +507,16 @@ void TransMem::writeJSON(QJsonObject &json) const {
 
 }
 
-void TransMem::dumpPathAsJSON(const Path &p) const{
-
-   QString path = "";
-   QJsonObject pathObject;
-
-   std::lock_guard<std::recursive_mutex> guard(lock);
-   p.writeJSON(pathObject);
-
-   dumpJSONfile(path, pathObject, OutputType::PATH);
-
-}
-
-void TransMem::dumpJSONfile(const QString &path, const QJsonObject &json, const OutputType &outputType) const {
-
-    QDateTime currentTime = QDateTime::currentDateTime();
-    QString suffixFilename;
-
-    switch(outputType){
-        case OutputType::PATH:          suffixFilename = "_path_dump.json"; break;
-        case OutputType::TRANSMEM:      suffixFilename = "_transmem_dump.json"; break;
-    }
-
-    QFile file( path + currentTime.toString("ddMMyy_HHmmss") + suffixFilename);
-    if(!file.open(QIODevice::WriteOnly)){
-        qDebug() << file.errorString();
-        return;
-    }
-
-    QJsonDocument saveJSON(json);
-    file.write(saveJSON.toJson());
-
-    file.close();
-    if(file.error()){
-        qDebug() << file.errorString();
-        return;
-    }
-}
-
-/********
- * PATH *
- ********/
-
 void Path::writeJSON(QJsonObject &json) const {
 
     QJsonObject sourceObject; sourceObject.insert("frameID", QString::fromStdString(src));
 
     QJsonArray linkObjects;
-    for(Link& l : links){
+    for(Link& link : links){
         QJsonObject linkObject;
-        QJsonObject parentObject; parentObject.insert("frameID", QString::fromStdString(l.parent->frameID));
+        QJsonObject parentObject; parentObject.insert("frameID", QString::fromStdString(link.parent->frameID));
         linkObject.insert("01_parent", parentObject);
-        QJsonObject chilObject; parentObject.insert("frameID", QString::fromStdString(l.child->frameID));
+        QJsonObject chilObject; parentObject.insert("frameID", QString::fromStdString(link.child->frameID));
         linkObject.insert("02_child", parentObject);
         linkObjects.append(linkObject);
     }

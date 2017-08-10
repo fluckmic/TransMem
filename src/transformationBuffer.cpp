@@ -128,8 +128,8 @@ void TransformationBuffer::pruneStorage() {
     buffer.remove_if([&mostRecent, this](const StampedTransformation &te){return te.time + storageTime < mostRecent;});
 
     // To many entries, remove the oldest ones.
-    if(buffer.size() > maxNumberOfEntries){
-        while(buffer.size() > maxNumberOfEntries)
+    if(buffer.size() > MAX_NUMBER_OF_ENTRIES){
+        while(buffer.size() > MAX_NUMBER_OF_ENTRIES)
             buffer.pop_front();
     }
 }
@@ -157,7 +157,7 @@ bool TransformationBuffer::entryAt(StampedTransformation &te) const {
     StampedTransformation tl = *iterA; StampedTransformation tr = *(++iterA);
 
     // Return left entry if distance between entries is to small.
-    if(tr.time - tl.time < minDistForInterpolation){
+    if(tr.time - tl.time < MIN_DISTANCE_FOR_INTERPOLATION){
         te = tl;
         return true;
     }
@@ -172,6 +172,7 @@ void TransformationBuffer::interpolate(const StampedTransformation &el, const St
     milliseconds abs = duration_cast<milliseconds>(er.time-el.time);
     milliseconds lt = duration_cast<milliseconds>(res.time-el.time);
 
+    // abs.count() cant be zero since interpolate is just called if the two entries are a minimum distance apart.
     double ratio = (double) lt.count()/abs.count();
 
     // Protection against strange cases.

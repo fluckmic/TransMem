@@ -8,10 +8,6 @@
 
 #include "transmem/transmem.h"
 
-/*****************
- * TRANSMEM TEST *
- *****************/
-
 class transmemTest : public QObject {
 
     Q_OBJECT

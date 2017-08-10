@@ -42,9 +42,9 @@ protected:
 
     const DurationSec storageTime;
 
-    const DurationNanoSec minDistForInterpolation{5};
+    const DurationNanoSec MIN_DISTANCE_FOR_INTERPOLATION {5};
 
-    const unsigned int maxNumberOfEntries = 1000000;
+    const unsigned int MAX_NUMBER_OF_ENTRIES {1000000};
 
 };
 
