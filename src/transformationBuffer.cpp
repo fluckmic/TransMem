@@ -3,6 +3,10 @@
 using namespace std;
 using namespace std::chrono;
 
+/*************************
+ * TRANSFORMATION BUFFER *
+ *************************/
+
 bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, milliseconds &distanceToCloserEntry) const {
 
     milliseconds tStampMS = chrono::duration_cast<milliseconds>(tStamp.time_since_epoch());
@@ -11,23 +15,23 @@ bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, m
         return false;
     }
 
-    // if t is newer than every entry, we just need to know the distLeft
-    // to the newest entry in the buffer
+    // If tStamp is newer than every entry, we just need to know the distLeft
+    // to the newest entry in the buffer.
     if( tStamp > ((StampedTransformation)buffer.back()).time ){
 
         distanceToCloserEntry = (tStampMS - duration_cast<milliseconds>(((StampedTransformation)buffer.back()).time.time_since_epoch()));
         return true;
     }
 
-    // if t is older than every entry, we just need to know the distLeft
-    // to the oldest entry in the buffer
+    // If tStamp is older than every entry, we just need to know the distLeft
+    // to the oldest entry in the buffer.
     if( tStamp < ((StampedTransformation)buffer.front()).time ){
 
         distanceToCloserEntry = (duration_cast<milliseconds>(((StampedTransformation)buffer.front()).time.time_since_epoch()) - tStampMS);
         return true;
     }
 
-    // return zero if we hit an entry
+    // Return zero if we hit an entry.
     auto iterF = find_if(buffer.begin(), buffer.end(), [&tStamp](const StampedTransformation &e){ return tStamp == e.time; });
     if( iterF != buffer.end() ){
 
@@ -35,7 +39,7 @@ bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, m
         return true;
     }
 
-    // otherwise we have to choose the minima
+    // Otherwise we have to choose the minima.
     auto iterA = adjacent_find(buffer.begin(), buffer.end(),
                                [&tStamp](const StampedTransformation &el, const StampedTransformation &er)
                                {return (el.time < tStamp && tStamp < er.time); });
@@ -69,21 +73,21 @@ bool TransformationBuffer::newestEntry(StampedTransformation &te) const {
     return true;
 }
 
-bool TransformationBuffer::addEntry(const StampedTransformation &te){
+bool TransformationBuffer::addEntry(const StampedTransformation &te) {
 
-    // buffer is empty, insert new entry and return
+    // Buffer is empty, insert new entry and return.
     if( buffer.empty() ){
         buffer.push_back(te);
         return true;
     }
 
-    // new entry is too old to be stored
+    // New entry is too old to be stored.
     if( te.time + storageTime < ((StampedTransformation)buffer.back()).time ) {
         return false;
     }
 
-    // if new entry is newer than every entry, insert it direct in
-    // front of the list (should be the case most of the time)
+    // If new entry is newer than every entry, insert it direct in
+    // front of the list (should be the case most of the time).
     if( te.time > ((StampedTransformation)buffer.back()).time ){
 
         buffer.push_back(te);
@@ -91,8 +95,8 @@ bool TransformationBuffer::addEntry(const StampedTransformation &te){
         return true;
     }
 
-    // if new entry is older than every entry, insert it direct at
-    // the back of the list
+    // If new entry is older than every entry, insert it direct at
+    // the back of the list.
     if( te.time < ((StampedTransformation)buffer.front()).time ){
 
         buffer.push_front(te);
@@ -100,100 +104,91 @@ bool TransformationBuffer::addEntry(const StampedTransformation &te){
         return true;
     }
 
-    // if entry already exists, just update it properly
+    // If entry already exists, just update it properly.
     auto iterF = find_if(buffer.begin(), buffer.end(), [&te](const StampedTransformation &e){ return te.time == e.time; });
     if( iterF != buffer.end() ){
         *iterF = te;
         return true;
     }
 
-    // insert new entry in between two existing entries
+    // Insert new entry in between two existing entries
     auto iterA = adjacent_find(buffer.begin(), buffer.end(), [&te](const StampedTransformation &el, const StampedTransformation &er){ return (el.time < te.time && te.time < er.time); });
     buffer.insert(++iterA, te);
     pruneStorage();
     return true;
 }
 
-void TransformationBuffer::pruneStorage(){
+void TransformationBuffer::pruneStorage() {
 
-    // NOTE: assertion just during development
-    // pruneStorage should never be called when the buffer is empty
+    // NOTE: Assertion just during development.
+    // Should never be called when the buffer is empty.
     assert(!buffer.empty());
 
     Timestamp mostRecent = ((StampedTransformation)buffer.back()).time;
     buffer.remove_if([&mostRecent, this](const StampedTransformation &te){return te.time + storageTime < mostRecent;});
 
-    // WARNING: TEST ME!
-    // to many entries, remove the oldest ones..
+    // To many entries, remove the oldest ones.
     if(buffer.size() > maxNumberOfEntries){
         while(buffer.size() > maxNumberOfEntries)
             buffer.pop_front();
     }
-
-
-    return;
-}
-
-void TransformationBuffer::printCurrentBufferToSTDOut() const{
-    for(StampedTransformation te : buffer )
-        cout << te;
 }
 
 bool TransformationBuffer::entryAt(StampedTransformation &te) const {
 
-    // return false if buffer is empty
+    // Return false if buffer is empty.
     if(buffer.empty())
         return false;
 
-    // return the newest entry if queried for en even newer one
+    // Return the newest entry if queried for en even newer one.
     if(((StampedTransformation)buffer.back()).time <= te.time){
         te = buffer.back();
         return true;
     }
 
-    // return the oldest entry queried for an even older one
+    // Return the oldest entry queried for an even older one.
     if(te.time <= ((StampedTransformation)buffer.front()).time){
         te = buffer.front();
         return true;
     }
 
-    // search the two closest entries
+    // Search the two closest entries.
     auto iterA = adjacent_find(buffer.begin(), buffer.end(), [&te](const StampedTransformation &el, const StampedTransformation &er){ return (el.time < te.time && te.time < er.time); });
     StampedTransformation tl = *iterA; StampedTransformation tr = *(++iterA);
 
-    // return left entry if distance between entries is to small
+    // Return left entry if distance between entries is to small.
     if(tr.time - tl.time < minDistForInterpolation){
         te = tl;
         return true;
     }
 
-    // interpolate
     interpolate(tl, tr, te);
 
     return true;
 }
 
-void TransformationBuffer::interpolate(const StampedTransformation &el, const StampedTransformation &er, StampedTransformation &res) const{
+void TransformationBuffer::interpolate(const StampedTransformation &el, const StampedTransformation &er, StampedTransformation &res) const {
 
     milliseconds abs = duration_cast<milliseconds>(er.time-el.time);
     milliseconds lt = duration_cast<milliseconds>(res.time-el.time);
 
-    float ratio = (float) lt.count()/abs.count();
+    double ratio = (double) lt.count()/abs.count();
 
-    // NOTE: assertion just during development
-    // ratio should not be outside this range
-    //assert(ratio > 0 && ratio <= 1);
+    // Protection against strange cases.
+    if(ratio > 1) ratio = 1.;
+    if(ratio < 0) ratio = 0.;
 
-    // spherical interpolation for the rotation
+    // Spherical interpolation for the rotation.
     res.rotation = QQuaternion::slerp(el.rotation, er.rotation, ratio);
 
-    // linear interpolation for the translation
+    // Linear interpolation for the translation.
     res.translation = el.translation*(1.-ratio) + er.translation*ratio;
 
-    return;
+    // We set time of the result to the time of the transformation entry which is farther away.
+    res.time = (ratio > 0.5 ? el.time : er.time);
 }
 
-void TransformationBuffer::writeJSON(QJsonObject &json) const{
+void TransformationBuffer::writeJSON(QJsonObject &json) const {
 
     QJsonArray bufferedEntries;
 

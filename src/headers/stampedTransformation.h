@@ -3,19 +3,19 @@
 
 #include "typedefs.h"
 
+/**************************
+ * STAMPED TRANSFORMATION *
+ **************************/
+
 struct StampedTransformation {
 
-    Timestamp time;
+    // Quaternions encoding the transformation
     QQuaternion rotation;
     QQuaternion translation;
 
-    std::string timeAsString() const;
-    std::string rotationAsString() const;
-    std::string translationAsString() const;
+    Timestamp time;
 
     void writeJSON(QJsonObject &json) const;
 };
-
-std::ostream &operator<<(std::ostream &os, const StampedTransformation &te);
 
 #endif // STAMPEDTRANSFORMATION_H

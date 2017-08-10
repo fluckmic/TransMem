@@ -1,23 +1,21 @@
 #include "../src/headers/frameAndLink.h"
 
+/********
+ * LINK *
+ ********/
 
-/****************************
- * LINK                     *
- ****************************/
-
-bool Link::distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry) const{
+bool Link::distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry) const {
 
     return buf.distanceToNextClosestEntry(tStamp, distanceToCloserEntry);
 }
 
-
 bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation) {
 
-    // NOTE: assertion just during development
-    // caller should not call the function on a wrong link
+    // NOTE: Assertion just during development.
+    // Caller should not call the function on a wrong link.
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
-    // caller should make sure that the translation is pure
+    // Caller should make sure that the translation is pure.
     assert(stampedTransformation.translation.scalar() == 0.);
 
     if(child->frameID == srcFrame)
@@ -31,10 +29,10 @@ bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stam
         return false;
 }
 
-bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const{
+bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const {
 
-    // NOTE: assertion just during development
-    // caller should not call the function on a wrong link
+    // NOTE: Assertion just during development.
+    // Caller should not call the function on a wrong link.
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
     return getTransformation(srcFrame, stampedTransformation, AccessType::TIME);
@@ -49,16 +47,16 @@ bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &
     return getTransformation(srcFrame, stampedTransformation, AccessType::OLDEST);
 }
 
-bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const{
+bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const {
 
-    // NOTE: assertion just during development
-    // caller should not call the function on a wrong link
+    // NOTE: Assertion just during development.
+    // Caller should not call the function on a wrong link.
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
     return getTransformation(srcFrame, stampedTransformation, AccessType::NEWEST);
 }
 
-bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType) const{
+bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation, AccessType accessType) const {
 
     bool ret = false;
 
@@ -71,8 +69,8 @@ bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &sta
     case AccessType::NEWEST:    ret = buf.newestEntry(stampedTransformation);
                                 break;
     default:        assert(false);
-                    /* we should never reach this point but
-                       it's always good to have a default plan. */
+                    // We should never reach this point but
+                    // it's always good to have a default plan.
     }
 
     if(!ret)
@@ -86,7 +84,7 @@ bool Link::getTransformation(const FrameID &srcFrame, StampedTransformation &sta
 
 void Link::invertTransformation(StampedTransformation &stampedTransformation) const {
 
-    stampedTransformation.rotation = stampedTransformation.rotation.inverted();
+    stampedTransformation.rotation = stampedTransformation.rotation.conjugated();
     stampedTransformation.translation = -(stampedTransformation.rotation*stampedTransformation.translation*stampedTransformation.rotation.conjugated());
 
 }
@@ -102,24 +100,24 @@ void Link::writeJSON(QJsonObject &json) const {
     json.insert("3_bufferedEntries", bufferObject);
 }
 
-/****************************
- * FRAME                    *
- ****************************/
+/*********
+ * FRAME *
+ *********/
 
-void Frame::addLink(Link * const newLink){
+void Frame::addLink(Link * const newLink) {
 
-    // NOTE: assertion just during development
-    // caller passes a valid link object
+    // NOTE: Assertion just during development.
+    // Caller passes a valid link object.
     assert(newLink != nullptr);
 
-    // link is connected to actual frames
+    // Link is connected to actual frames.
     assert(newLink->parent && newLink->child != nullptr);
 
-    //the link leads from this frame to another frame
+    // The link leads from this frame to another frame.
     assert(frameID == newLink->parent->frameID);
 
-    //check if there already exist such a link
-    //in either direction
+    // Check if there already exist such a link
+    // in either direction.
     Link* excistingLink = nullptr;
     connectionTo(newLink->child->frameID, excistingLink);
     if(excistingLink != nullptr)  return;
@@ -127,19 +125,17 @@ void Frame::addLink(Link * const newLink){
     newLink->child->connectionTo(frameID, excistingLink);
     if(excistingLink != nullptr)  return;
 
-    //add link to this frame
+    // Add link to this frame.
     children.push_back(newLink);
 
-    //add link to the destination
+    // Add link to the destination.
     newLink->child->parents.push_back(newLink);
-
-    return;
 }
 
 void Frame::connectionTo(const FrameID &destination, Link *&linkToDest) {
 
-    // returns the link to the frame f if there is one
-    // if no link exist, the null pointer is returned
+    // Returns the link to the frame f if there is one
+    // if no link exist, the null pointer is returned.
 
     linkToDest = nullptr;
 
@@ -154,7 +150,7 @@ void Frame::connectionTo(const FrameID &destination, Link *&linkToDest) {
     return;
 }
 
-void Frame::writeJSON(QJsonObject &json) const{
+void Frame::writeJSON(QJsonObject &json) const {
 
     QJsonArray parentObjects;
     for(Link* p: parents){

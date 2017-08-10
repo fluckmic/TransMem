@@ -11,9 +11,9 @@
 
 class Frame;
 
-/***************************
- * LINK                    *
- ***************************/
+/********
+ * LINK *
+ ********/
 
 class Link
 {
@@ -22,9 +22,10 @@ friend class GMLWriter;
 
 public:
 
-    Link(Frame *const parent, Frame *const child, const DurationSec &storageTime)
+    Link(Frame *const parent, Frame *const child, const DurationSec &storageTime, const double &confidence)
     : parent{parent}
     , child(child)
+    , confidence(confidence)
     , buf(storageTime)
     {}
 
@@ -42,7 +43,8 @@ public:
 
     Frame *const child;
 
-    double weight = 1.;
+    double weight{1};
+    double confidence;
 
     Timestamp lastTimeUpdated;
 
@@ -59,10 +61,9 @@ protected:
     TransformationBuffer buf;
 };
 
-
-/***************************
- * FRAME                   *
- ***************************/
+/*********
+ * FRAME *
+ *********/
 
 class Frame
 {
@@ -83,7 +84,6 @@ public:
     std::vector<Link*> children;
 
     void writeJSON(QJsonObject &json) const;
-
 
 };
 
