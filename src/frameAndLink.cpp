@@ -1,9 +1,5 @@
 #include "../src/headers/frameAndLink.h"
 
-/********
- * LINK *
- ********/
-
 bool Link::distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::milliseconds &distanceToCloserEntry) const {
 
     return buf.distanceToNextClosestEntry(tStamp, distanceToCloserEntry);
@@ -99,10 +95,6 @@ void Link::writeJSON(QJsonObject &json) const {
     json.insert("2_child", childObject);
     json.insert("3_bufferedEntries", bufferObject);
 }
-
-/*********
- * FRAME *
- *********/
 
 void Frame::addLink(Link * const newLink) {
 

@@ -7,7 +7,7 @@ const char* NoSuchLinkFoundException::what() const throw(){
 
 // Public main functions
 
-void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QQuaternion &tranlation,
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QVector3D &translation,
                             const double confidence){
 
     // Check if rotation quaternion is normalized.
@@ -15,25 +15,17 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
         rotation.length() >= 1. + TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK )
         qWarning() << "Rotation quaternion is not normalized.\n";
 
-    // Check if translation quaternion is pure. (scalar value of translation quaternion should be 0)
-    if(tranlation.scalar() != 0.)
-        qWarning() << "Translation quaternion is not pure.\n";
-
-    registerLink(srcFrame, destFrame, validTime, rotation, tranlation, confidence, true);
+    registerLink(srcFrame, destFrame, validTime, rotation, QQuaternion(0, translation.x(), translation.y(), translation.z()), confidence, true);
 }
 
-void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QQuaternion &translation){
+void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QVector3D &translation){
 
     // Check if rotation quaternion is normalized
     if( rotation.length() <= 1. - TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK ||
         rotation.length() >= 1. + TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK )
         qWarning() << "Rotation quaternion is not normalized.\n";
 
-    // Check if translation quaternion is pure (scalar value of translation quaternion should be 0)
-    if(translation.scalar() != 0.)
-        qWarning() << "Translation quaternion is not pure.\n";
-
-    registerLink(srcFrame, destFrame, validTime, rotation, translation, 0, false);
+    registerLink(srcFrame, destFrame, validTime, rotation, QQuaternion(0, translation.x(), translation.y(), translation.z()), 0, false);
 }
 
 void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans, const double confidence){
@@ -263,8 +255,8 @@ void TransMem::calculateTransformation(const Path &path, StampedTransformationWi
 
     StampedTransformation currentTrans;
 
-    resultT.rotation = QQuaternion();
-    resultT.translation = QQuaternion(0,0,0,0);
+    QQuaternion rotationResult = QQuaternion();
+    QQuaternion translationResult = QQuaternion(0,0,0,0);
 
     double confidenceSum = 0;
     double maxTimeDiff = 0;
@@ -277,9 +269,9 @@ void TransMem::calculateTransformation(const Path &path, StampedTransformationWi
         // Get the transformation of the current link.
         l.transformationAtTimeT(currentSrcFrameID, currentTrans);
 
-       resultT.rotation = currentTrans.rotation * resultT.rotation;
-       resultT.translation = currentTrans.rotation * resultT.translation * currentTrans.rotation.conjugated();
-       resultT.translation = resultT.translation + currentTrans.translation;
+       rotationResult = currentTrans.rotation * rotationResult;
+       translationResult = currentTrans.rotation * translationResult * currentTrans.rotation.conjugated();
+       translationResult = translationResult + currentTrans.translation;
 
        // Sum up the confidence of all the links.
        confidenceSum += l.confidence;
@@ -296,6 +288,9 @@ void TransMem::calculateTransformation(const Path &path, StampedTransformationWi
        else
            currentSrcFrameID = l.parent->frameID;
     }
+
+    resultT.rotation = rotationResult;
+    resultT.translation = QVector3D(translationResult.x(), translationResult.y(), translationResult.z());
 
     resultT.averageLinkConfidence = confidenceSum / path.links.size();
     resultT.maxDistanceToEntry = maxTimeDiff;

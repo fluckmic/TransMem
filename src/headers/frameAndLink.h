@@ -11,10 +11,6 @@
 
 class Frame;
 
-/********
- * LINK *
- ********/
-
 class Link
 {
 
@@ -61,9 +57,6 @@ protected:
     TransformationBuffer buf;
 };
 
-/*********
- * FRAME *
- *********/
 
 class Frame
 {

@@ -6,10 +6,6 @@
 #include "typedefs.h"
 #include "stampedTransformation.h"
 
-/*************************
- * TRANSFORMATION BUFFER *
- *************************/
-
 class TransformationBuffer {
 
 friend class GMLWriter;

@@ -50,7 +50,11 @@ struct Path {
 
 /*! \struct StampedTransformationWithConfidence
  *  \brief Returned as result of a successful query. */
-struct StampedTransformationWithConfidence : public StampedTransformation {
+struct StampedTransformationWithConfidence {
+
+    QQuaternion rotation;
+
+    QVector3D translation;
 
     /*! The average \ref Link-Confidence "confidence" of all links used to calculate the transformation. */
     double averageLinkConfidence {0};
@@ -60,6 +64,7 @@ struct StampedTransformationWithConfidence : public StampedTransformation {
      * If the default \link TransMem::distanceToEntryMapping mapping\endlink is used, the value is in ms. */
     double maxDistanceToEntry {std::numeric_limits<double>::max()};
 
+    Timestamp time;
 };
 
 /*! \class TransMem
@@ -165,7 +170,7 @@ public:
      * \param trans Describes the transformation mapping from the source to the destination frame. */
     void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans);
 
-    /*! \fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QQuaternion &translation)
+    /*! \fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QVector3D &translation)
      *
      * \see registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans)
      *
@@ -174,7 +179,7 @@ public:
      * \param validTime At what time the transformation is valid.
      * \param rotation Encodes the rotation part of the transformation mapping from the source to the destination frame.
      * \param translation Encodes the translation part of the transformation mapping from the source to the destination frame. */
-    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QQuaternion &translation);
+    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QVector3D &translation);
 
     /*! \fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans, const double confidence)
      *
@@ -191,7 +196,7 @@ public:
      * \param confidence New confidence value of the link between source and destination frame. */
      void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans, const double confidence);
 
-    /*! \fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QQuaternion &translation, const double confidence)
+    /*! \fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QVector3D &translation, const double confidence)
      *
      * \see registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans, const double confidence)
      *
@@ -201,7 +206,7 @@ public:
      * \param rotation Encodes the rotation part of the transformation mapping from the source frame to the destination frame.
      * \param translation Encodes the translation part of the transformation mapping from the source to the destination frame.
      * \param confidence New confidence value of the link between source and destination frame. */
-    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QQuaternion &tranlation, const double confidence);
+    void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QQuaternion &rotation, const QVector3D &tranlation, const double confidence);
 
     /*! \fn StampedTransformationWithConfidence getLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &queryTime) const
      *

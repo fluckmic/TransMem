@@ -3,10 +3,6 @@
 using namespace std;
 using namespace std::chrono;
 
-/*************************
- * TRANSFORMATION BUFFER *
- *************************/
-
 bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, milliseconds &distanceToCloserEntry) const {
 
     milliseconds tStampMS = chrono::duration_cast<milliseconds>(tStamp.time_since_epoch());
