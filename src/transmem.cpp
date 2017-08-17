@@ -139,29 +139,34 @@ StampedTransformationWithConfidence TransMem::getBestLink(const FrameID &srcFram
 
     // Check if the path is already cached.
 
-    auto itr2CachedPaths = cachedPaths.find(linkID);
-    // If yes, we load the cached path
-    if(itr2CachedPaths != cachedPaths.end())
-        p = (*itr2CachedPaths).second;
-    // If not, we search for a shortest path between source frame and destination frame.
-    else {
-        if(!shortestPath(p))
-            throw NoSuchLinkFoundException(srcFrame, destFrame);
-        cachedPaths.insert({linkID, p});
-    }
-
-    // Check if there is already a best transformation cached
-
     auto itr2BestTransformations = cachedBestTransformations.find(linkID);
 
     // If yes we check if a recalculation is necessary
     if(itr2BestTransformations != cachedBestTransformations.end()){
-        // The link is just recalculated if every link was updated in the mean time.
+
+        // The link is just recalculated if every link was updated in the mean time
+        // within a certain timespan
 
         Timestamp tstampBestLinkCalc = (*itr2BestTransformations).second.first;
 
-        for(Link link : p.links)
-           recalculation = recalculation && ( tstampBestLinkCalc < link.lastTimeUpdated);
+        // Path has at least length one so there always exists a first entry
+        Link link = ((Link) p.links.at(0));
+
+        Timestamp earliestUpdate = link.lastTimeUpdated;
+        Timestamp latestUpdate = link.lastTimeUpdated;
+
+        for(int indx = 1; indx < p.links.size(); indx++){
+
+            Link link = ((Link) p.links.at(indx));
+
+            if(link.lastTimeUpdated < earliestUpdate)
+                earliestUpdate = link.lastTimeUpdated;
+            else if(latestUpdate < link.lastTimeUpdated)
+                latestUpdate = link.lastTimeUpdated;
+        }
+
+        recalculation = (tstampBestLinkCalc < earliestUpdate) && (latestUpdate - earliestUpdate) < std::chrono::milliseconds(250);
+
     }
     // If not a recalculation is necessary for sure
 
