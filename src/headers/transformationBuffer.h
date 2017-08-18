@@ -12,8 +12,8 @@ friend class GMLWriter;
 
 public:
 
-    TransformationBuffer(const DurationSec &d)
-    : storageTime(d)
+    TransformationBuffer(const DurationMilliSec &storageTimeInMS)
+    : storageTimeInMS(storageTimeInMS)
     {}
 
     bool entryAt(StampedTransformation &te) const;
@@ -36,9 +36,9 @@ protected:
 
     std::list<StampedTransformation> buffer;
 
-    const DurationSec storageTime;
+    const DurationMilliSec storageTimeInMS;
 
-    const DurationNanoSec MIN_DISTANCE_FOR_INTERPOLATION {5};
+    const DurationNanoSec MIN_DISTANCE_FOR_INTERPOLATION_IN_NS {5};
 
     const unsigned int MAX_NUMBER_OF_ENTRIES {1000000};
 

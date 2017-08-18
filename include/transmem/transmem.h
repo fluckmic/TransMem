@@ -130,7 +130,8 @@ public:
 
     /*! Default constructor.\n
       *
-      * Constructs a TransMem object which bufferes the transformation entries for a default duration of 10 seconds.\n
+      * Constructs a TransMem object which bufferes the transformation entries for a default duration of 1 second.\n
+      * The timespan within all links along a path have to be updated to invalided the cached best link is 250 miliseconds.\n
       *
       * The default \ref Link-Confidence "link confidence" is set to 1.
       * The default \link TransMem::distanceToEntryMapping distance to entry mapping\endlink is \f$f(x) = x\f$. */
@@ -139,18 +140,21 @@ public:
     /*! Alternative constructor.\n
      *
      * Constructs a transmem object which bufferes the transformation entries for the duration specified in \a storageTime.
-     * If the duration is smaller than one second, the duration is set to one second.
+     * If the duration is smaller than one milisecond, the duration is set to one milisecond.
      *
-     * \param storageTime Custom value for the buffer duration in seconds.
+     * \param storageTime Custom value for the buffer duration in miliseconds.
      * \param defaultLinkConfidence Custom default value for the \ref Link-Confidence "link confidence".
-     * \param distanceToEntryMapping Custom mapping for TransMem::distanceToEntryMapping. */
-    TransMem(DurationSec storageTime, const double defaultLinkConfidence = 1., const DoubleToDoubleFunction distanceToEntryMapping = [](double x) {return x;})
-    : storageTime(storageTime)
+     * \param distanceToEntryMapping Custom mapping for TransMem::distanceToEntryMapping.
+     * \param intervalBestLinkCacheInvalidationInMS Custom value for TransMem::intervalBestLinkCacheInvalidationInMS. */
+    TransMem(DurationMilliSec storageTimeInMS, const double defaultLinkConfidence = 1.,
+             const DoubleToDoubleFunction distanceToEntryMapping = [](double x) {return x;}, DurationMilliSec intervalBestLinkCacheInvalidationInMS = DurationMilliSec{250})
+    : storageTimeInMS(storageTimeInMS)
     , defaultLinkConfidence(defaultLinkConfidence)
     , distanceToEntryMapping(distanceToEntryMapping)
+    , intervalBestLinkCacheInvalidationInMS(intervalBestLinkCacheInvalidationInMS)
     {
-        if(storageTime < DurationSec(1))
-            storageTime = DurationSec(1);
+        if(storageTimeInMS < DurationMilliSec(1))
+            storageTimeInMS = DurationMilliSec(1);
     }
 
     /*! \fn void registerLink(const FrameID &srcFrame, const FrameID &destFrame, const Timestamp &validTime, const QMatrix4x4 &trans)
@@ -338,8 +342,11 @@ protected:
     mutable std::unordered_map< std::string, Path > cachedPaths;
     mutable std::unordered_map< std::string, std::pair< Timestamp, StampedTransformationWithConfidence > > cachedBestTransformations;
 
+    /*! Best link result in cache is invalidated if all links along the path where updated within a timespan specified by this parameter. */
+    const DurationMilliSec intervalBestLinkCacheInvalidationInMS {250};
+
     /*! Duration how long transformation entries are stored on a link. */
-    DurationSec storageTime {10};
+    const DurationMilliSec storageTimeInMS {1000};
 
     /*! \see \ref Link-Confidence "Link confidence". */
     const double defaultLinkConfidence  {1.};
@@ -362,7 +369,7 @@ protected:
     const double TOLERATED_DEVIATION_ROTATION_NORMAL_CHECK {0.005};
 
     /*! \see \ref Best-Link-Query "Best link query" */
-    const int RESOLUTION_BEST_TIME_CALCULATION_IN_MS {5};
+    const DurationMilliSec RESOLUTION_BEST_TIME_CALCULATION_IN_MS {5};
 
 };
 

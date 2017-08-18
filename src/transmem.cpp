@@ -128,68 +128,81 @@ StampedTransformationWithConfidence TransMem::getLink(const FrameID &srcFrame, c
 StampedTransformationWithConfidence TransMem::getBestLink(const FrameID &srcFrame, const FrameID &destFrame) const {
 
     if(srcFrame == destFrame)
-        throw std::invalid_argument("Not allowed to insert a link with srcFrame == destFrame.");
+            throw std::invalid_argument("Not allowed to insert a link with srcFrame == destFrame.");
 
-    bool recalculation = true;
-    std::string linkID = srcFrame+destFrame;
+        bool recalculation = true;
+        std::string linkID = srcFrame+destFrame;
 
-    std::lock_guard<std::recursive_mutex> guard(lock);
+        std::lock_guard<std::recursive_mutex> guard(lock);
 
-    Path p{srcFrame, destFrame};
+        Path p{srcFrame, destFrame};
 
-    // Check if the path is already cached.
+        // Check if the path is already cached.
 
-    auto itr2BestTransformations = cachedBestTransformations.find(linkID);
-
-    // If yes we check if a recalculation is necessary
-    if(itr2BestTransformations != cachedBestTransformations.end()){
-
-        // The link is just recalculated if every link was updated in the mean time
-        // within a certain timespan
-
-        Timestamp tstampBestLinkCalc = (*itr2BestTransformations).second.first;
-
-        // Path has at least length one so there always exists a first entry
-        Link link = ((Link) p.links.at(0));
-
-        Timestamp earliestUpdate = link.lastTimeUpdated;
-        Timestamp latestUpdate = link.lastTimeUpdated;
-
-        for(int indx = 1; indx < p.links.size(); indx++){
-
-            Link link = ((Link) p.links.at(indx));
-
-            if(link.lastTimeUpdated < earliestUpdate)
-                earliestUpdate = link.lastTimeUpdated;
-            else if(latestUpdate < link.lastTimeUpdated)
-                latestUpdate = link.lastTimeUpdated;
+        auto itr2CachedPaths = cachedPaths.find(linkID);
+        // If yes, we load the cached path
+        if(itr2CachedPaths != cachedPaths.end())
+            p = (*itr2CachedPaths).second;
+        // If not, we search for a shortest path between source frame and destination frame.
+        else {
+            if(!shortestPath(p))
+                throw NoSuchLinkFoundException(srcFrame, destFrame);
+            cachedPaths.insert({linkID, p});
         }
 
-        recalculation = (tstampBestLinkCalc < earliestUpdate) && (latestUpdate - earliestUpdate) < std::chrono::milliseconds(250);
+        // Check if there is already a best transformation cached
 
-    }
-    // If not a recalculation is necessary for sure
+        auto itr2BestTransformations = cachedBestTransformations.find(linkID);
 
-    // Do the recalculation if either the path was not cached before or every link along
-    // the path was updated since the link was added to the cache.
-    if(recalculation){
+        // If yes we check if a recalculation is necessary
+        if(itr2BestTransformations != cachedBestTransformations.end()){
 
-        StampedTransformationWithConfidence stT;
-        Path path{srcFrame, destFrame};
+            // The link is just recalculated if every link was updated in the mean time
+            // within a certain timespan
 
-        if(!bestLink(path, stT))
-               throw NoSuchLinkFoundException(srcFrame, destFrame);
+            Timestamp tstampBestLinkCalc = (*itr2BestTransformations).second.first;
 
-        // Remove old best transformation and insert new one
-        cachedBestTransformations.erase(linkID);
+            // Path has at least length one so there always exists a first entry
+            Link link = ((Link) p.links.at(0));
 
-        cachedBestTransformations.insert({linkID,{std::chrono::high_resolution_clock::now(), stT}});
+            Timestamp earliestUpdate = link.lastTimeUpdated;
+            Timestamp latestUpdate = link.lastTimeUpdated;
 
-        return stT;
-    }
-    else{
-        return (*itr2BestTransformations).second.second;
-    }
+            for(int indx = 1; indx < p.links.size(); indx++){
+
+                Link link = ((Link) p.links.at(indx));
+
+                if(link.lastTimeUpdated < earliestUpdate)
+                    earliestUpdate = link.lastTimeUpdated;
+                else if(latestUpdate < link.lastTimeUpdated)
+                    latestUpdate = link.lastTimeUpdated;
+            }
+
+            recalculation = (tstampBestLinkCalc < earliestUpdate) && ((latestUpdate - earliestUpdate) < intervalBestLinkCacheInvalidationInMS);
+
+        }
+        // If not a recalculation is necessary for sure
+
+        // Do the recalculation if either the path was not cached before or every link along
+        // the path was updated since the link was added to the cache.
+        if(recalculation){
+
+            StampedTransformationWithConfidence stT;
+            Path path{srcFrame, destFrame};
+
+            if(!bestLink(path, stT))
+                   throw NoSuchLinkFoundException(srcFrame, destFrame);
+
+            // Remove old best transformation and insert new one
+            cachedBestTransformations.erase(linkID);
+
+            cachedBestTransformations.insert({linkID,{std::chrono::high_resolution_clock::now(), stT}});
+
+            return stT;
+        }
+        else{
+            return (*itr2BestTransformations).second.second;
+        }
 }
 
 // Public debug functions
@@ -345,7 +358,7 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
         cachedPaths.clear();
         cachedBestTransformations.clear();
 
-        links.emplace_back(Link{ptr2SrcFrame, ptr2DstFrame, storageTime, (updateConfidence ? confidence : defaultLinkConfidence)});
+        links.emplace_back(Link{ptr2SrcFrame, ptr2DstFrame, storageTimeInMS, (updateConfidence ? confidence : defaultLinkConfidence)});
         ptr2Link = &links.back();
         ptr2SrcFrame->addLink(ptr2Link);
     }
@@ -384,7 +397,7 @@ void TransMem::calculateBestPointInTime(Path &path, Timestamp &bestTime) const{
      unsigned long best = std::numeric_limits<unsigned long>::max();
 
      // We then search for the point in time which minimizes the sum of the quadratic distance to the next entry over all links.
-     for(Timestamp tStampCurr = bestTime; tStampCurr > tStampOldest; tStampCurr = tStampCurr - std::chrono::milliseconds(RESOLUTION_BEST_TIME_CALCULATION_IN_MS)){
+     for(Timestamp tStampCurr = bestTime; tStampCurr > tStampOldest; tStampCurr = tStampCurr - RESOLUTION_BEST_TIME_CALCULATION_IN_MS){
 
          std::chrono::milliseconds temp(0);
          unsigned long sum = 0;

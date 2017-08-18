@@ -78,7 +78,7 @@ bool TransformationBuffer::addEntry(const StampedTransformation &te) {
     }
 
     // New entry is too old to be stored.
-    if( te.time + storageTime < ((StampedTransformation)buffer.back()).time ) {
+    if( te.time + storageTimeInMS < ((StampedTransformation)buffer.back()).time ) {
         return false;
     }
 
@@ -121,7 +121,7 @@ void TransformationBuffer::pruneStorage() {
     assert(!buffer.empty());
 
     Timestamp mostRecent = ((StampedTransformation)buffer.back()).time;
-    buffer.remove_if([&mostRecent, this](const StampedTransformation &te){return te.time + storageTime < mostRecent;});
+    buffer.remove_if([&mostRecent, this](const StampedTransformation &te){return te.time + storageTimeInMS < mostRecent;});
 
     // To many entries, remove the oldest ones.
     if(buffer.size() > MAX_NUMBER_OF_ENTRIES){
@@ -153,7 +153,7 @@ bool TransformationBuffer::entryAt(StampedTransformation &te) const {
     StampedTransformation tl = *iterA; StampedTransformation tr = *(++iterA);
 
     // Return left entry if distance between entries is to small.
-    if(tr.time - tl.time < MIN_DISTANCE_FOR_INTERPOLATION){
+    if(tr.time - tl.time < MIN_DISTANCE_FOR_INTERPOLATION_IN_NS){
         te = tl;
         return true;
     }
