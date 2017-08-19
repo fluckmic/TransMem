@@ -356,7 +356,6 @@ void TransMem::registerLink(const FrameID &srcFrame, const FrameID &destFrame, c
 
         // Clear the cached paths and best transformations
         cachedPaths.clear();
-        cachedBestTransformations.clear();
 
         links.emplace_back(Link{ptr2SrcFrame, ptr2DstFrame, storageTimeInMS, (updateConfidence ? confidence : defaultLinkConfidence)});
         ptr2Link = &links.back();
