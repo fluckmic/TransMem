@@ -11,10 +11,6 @@
 
 class Frame;
 
-/********
- * LINK *
- ********/
-
 class Link
 {
 
@@ -22,11 +18,11 @@ friend class GMLWriter;
 
 public:
 
-    Link(Frame *const parent, Frame *const child, const DurationSec &storageTime, const double &confidence)
+    Link(Frame *const parent, Frame *const child, const DurationMilliSec &storageTimeInMS, const double &confidence)
     : parent{parent}
     , child(child)
     , confidence(confidence)
-    , buf(storageTime)
+    , buf(storageTimeInMS)
     {}
 
     bool oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const;
@@ -43,7 +39,7 @@ public:
 
     Frame *const child;
 
-    double weight{1};
+    double weight{1.};
     double confidence;
 
     Timestamp lastTimeUpdated;
@@ -61,9 +57,6 @@ protected:
     TransformationBuffer buf;
 };
 
-/*********
- * FRAME *
- *********/
 
 class Frame
 {

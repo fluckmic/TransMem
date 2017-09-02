@@ -3,10 +3,6 @@
 using namespace std;
 using namespace std::chrono;
 
-/*************************
- * TRANSFORMATION BUFFER *
- *************************/
-
 bool TransformationBuffer::distanceToNextClosestEntry(const Timestamp &tStamp, milliseconds &distanceToCloserEntry) const {
 
     milliseconds tStampMS = chrono::duration_cast<milliseconds>(tStamp.time_since_epoch());
@@ -82,7 +78,7 @@ bool TransformationBuffer::addEntry(const StampedTransformation &te) {
     }
 
     // New entry is too old to be stored.
-    if( te.time + storageTime < ((StampedTransformation)buffer.back()).time ) {
+    if( te.time + storageTimeInMS < ((StampedTransformation)buffer.back()).time ) {
         return false;
     }
 
@@ -125,11 +121,11 @@ void TransformationBuffer::pruneStorage() {
     assert(!buffer.empty());
 
     Timestamp mostRecent = ((StampedTransformation)buffer.back()).time;
-    buffer.remove_if([&mostRecent, this](const StampedTransformation &te){return te.time + storageTime < mostRecent;});
+    buffer.remove_if([&mostRecent, this](const StampedTransformation &te){return te.time + storageTimeInMS < mostRecent;});
 
     // To many entries, remove the oldest ones.
-    if(buffer.size() > maxNumberOfEntries){
-        while(buffer.size() > maxNumberOfEntries)
+    if(buffer.size() > MAX_NUMBER_OF_ENTRIES){
+        while(buffer.size() > MAX_NUMBER_OF_ENTRIES)
             buffer.pop_front();
     }
 }
@@ -157,7 +153,7 @@ bool TransformationBuffer::entryAt(StampedTransformation &te) const {
     StampedTransformation tl = *iterA; StampedTransformation tr = *(++iterA);
 
     // Return left entry if distance between entries is to small.
-    if(tr.time - tl.time < minDistForInterpolation){
+    if(tr.time - tl.time < MIN_DISTANCE_FOR_INTERPOLATION_IN_NS){
         te = tl;
         return true;
     }
@@ -172,6 +168,7 @@ void TransformationBuffer::interpolate(const StampedTransformation &el, const St
     milliseconds abs = duration_cast<milliseconds>(er.time-el.time);
     milliseconds lt = duration_cast<milliseconds>(res.time-el.time);
 
+    // abs.count() cant be zero since interpolate is just called if the two entries are a minimum distance apart.
     double ratio = (double) lt.count()/abs.count();
 
     // Protection against strange cases.

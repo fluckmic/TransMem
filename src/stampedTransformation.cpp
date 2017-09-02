@@ -1,9 +1,5 @@
 #include "../src/headers/stampedTransformation.h"
 
-/**************************
- * STAMPED TRANSFORMATION *
- **************************/
-
 void StampedTransformation::writeJSON(QJsonObject &json) const {
 
     using namespace std::chrono;

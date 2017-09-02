@@ -1,9 +1,5 @@
 #include "../src/headers/graphMLWriter.h"
 
-/******************
- * GRAPHML WRITER *
- ******************/
-
 bool GraphMLWriter::write(const QString &path, const TransMem &tm) {
 
     QDateTime currentTime = QDateTime::currentDateTime();

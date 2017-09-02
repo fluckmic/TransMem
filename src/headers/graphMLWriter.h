@@ -15,10 +15,6 @@ class TransMem;
  * The graph represented by the GraphML file can be displayed for example with Gephi.
  * (https://gephi.org/) */
 
-/******************
- * GRAPHML WRITER *
- ******************/
-
 class GraphMLWriter {
 
 public:

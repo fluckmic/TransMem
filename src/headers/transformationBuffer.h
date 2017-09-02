@@ -6,18 +6,14 @@
 #include "typedefs.h"
 #include "stampedTransformation.h"
 
-/*************************
- * TRANSFORMATION BUFFER *
- *************************/
-
 class TransformationBuffer {
 
 friend class GMLWriter;
 
 public:
 
-    TransformationBuffer(const DurationSec &d)
-    : storageTime(d)
+    TransformationBuffer(const DurationMilliSec &storageTimeInMS)
+    : storageTimeInMS(storageTimeInMS)
     {}
 
     bool entryAt(StampedTransformation &te) const;
@@ -40,11 +36,11 @@ protected:
 
     std::list<StampedTransformation> buffer;
 
-    const DurationSec storageTime;
+    const DurationMilliSec storageTimeInMS;
 
-    const DurationNanoSec minDistForInterpolation{5};
+    const DurationNanoSec MIN_DISTANCE_FOR_INTERPOLATION_IN_NS {5};
 
-    const unsigned int maxNumberOfEntries = 1000000;
+    const unsigned int MAX_NUMBER_OF_ENTRIES {1000000};
 
 };
 
