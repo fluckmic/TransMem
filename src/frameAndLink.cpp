@@ -7,7 +7,6 @@ bool Link::distanceToNextClosestEntry(const Timestamp &tStamp, std::chrono::mill
 
 bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stampedTransformation) {
 
-    // NOTE: Assertion just during development.
     // Caller should not call the function on a wrong link.
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
@@ -27,7 +26,6 @@ bool Link::addTransformation(const FrameID &srcFrame, StampedTransformation stam
 
 bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const {
 
-    // NOTE: Assertion just during development.
     // Caller should not call the function on a wrong link.
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
@@ -36,7 +34,6 @@ bool Link::transformationAtTimeT(const FrameID &srcFrame, StampedTransformation 
 
 bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const {
 
-    // NOTE: assertion just during development
     // caller should not call the function on a wrong link
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
@@ -45,7 +42,6 @@ bool Link::oldestTransformation(const FrameID &srcFrame, StampedTransformation &
 
 bool Link::newestTransformation(const FrameID &srcFrame, StampedTransformation &stampedTransformation) const {
 
-    // NOTE: Assertion just during development.
     // Caller should not call the function on a wrong link.
     assert((parent->frameID == srcFrame) || ( child->frameID == srcFrame));
 
