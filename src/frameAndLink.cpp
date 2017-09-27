@@ -98,7 +98,6 @@ void Link::writeJSON(QJsonObject &json) const {
 
 void Frame::addLink(Link * const newLink) {
 
-    // NOTE: Assertion just during development.
     // Caller passes a valid link object.
     assert(newLink != nullptr);
 

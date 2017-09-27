@@ -9,12 +9,13 @@
 
 class TransMem;
 
-/* Can be used to dump the graph representing the current state of the
+/*! \class GraphMLWriter
+ * \brief Can be used to dump the graph representing the current state of the
  * data structure as an GraphML file. (https://en.wikipedia.org/wiki/GraphML)
  *
  * The graph represented by the GraphML file can be displayed for example with Gephi.
- * (https://gephi.org/) */
-
+ * (https://gephi.org/)
+*/
 class GraphMLWriter {
 
 public:
@@ -29,6 +30,5 @@ protected:
 
     QXmlStreamWriter xml;
 };
-
 
 #endif // GRAPHMLWRITER_H
