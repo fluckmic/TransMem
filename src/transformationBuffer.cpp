@@ -116,7 +116,6 @@ bool TransformationBuffer::addEntry(const StampedTransformation &te) {
 
 void TransformationBuffer::pruneStorage() {
 
-    // NOTE: Assertion just during development.
     // Should never be called when the buffer is empty.
     assert(!buffer.empty());
 
